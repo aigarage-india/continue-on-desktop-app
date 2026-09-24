@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Continue on Desktop</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div id="supported-view" style="display:none;">
+      <div class="deep-link-row">
+        <span id="site-label" class="site-badge"></span>
+        <span id="deep-link-text" class="link-text"></span>
+      </div>
+      <div class="popup-actions">
+        <button id="open-btn" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 2h5v5M14 2L7 9"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Open in Desktop
+        </button>
+        <button id="copy-btn" class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"
+              stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          Copy
+        </button>
+      </div>
+      <div id="status" class="status-text"></div>
+    </div>
+
+    <div id="unsupported-view" style="display:none;">
+      <div class="unsupported-content">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="none" class="unsupported-icon">
+          <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3"
+            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 2h5v5M14 2L7 9"
+            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="unsupported-text">No conversation detected</p>
+        <p class="unsupported-hint">Open a chat on <a href="https://claude.ai" class="hint-link hint-claude" target="_blank">claude.ai</a> or <a href="https://chatgpt.com" class="hint-link hint-chatgpt" target="_blank">chatgpt.com</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="../src/utils.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
