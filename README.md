@@ -52,6 +52,10 @@ Right-click the extension icon → **Options** to enable or disable the button p
 - Manifest V3 (Chrome/Edge/Brave compatible)
 - Vanilla JavaScript, no build step, no dependencies
 
+## Privacy
+
+This extension does not collect, transmit, or store any personal data. It reads only the current tab's URL to generate a desktop app deep link. User preferences (per-site toggles) are stored locally in Chrome's `chrome.storage.sync` and never leave your browser.
+
 ## License
 
 MIT
