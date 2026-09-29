@@ -231,3 +231,14 @@ body {
 .footer-link:hover {
   text-decoration: underline;
 }
+
+.footer-sep {
+  margin: 0 4px;
+  color: #ccc;
+}
+
+@media (prefers-color-scheme: dark) {
+  .footer-sep {
+    color: #444;
+  }
+}
