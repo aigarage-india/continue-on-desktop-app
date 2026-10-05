@@ -97,7 +97,53 @@ var ClaudeExtractor = (function () {
     });
   }
 
+  function buildProjectMarkdown(name, docs) {
+    var lines = ["# " + name, ""];
+    for (var i = 0; i < docs.length; i++) {
+      lines.push("## " + docs[i].name);
+      lines.push("");
+      lines.push(docs[i].content);
+      lines.push("");
+    }
+    return lines.join("\n");
+  }
+
+  function extractProject(projectId) {
+    return getActiveOrgUuid().then(function (orgUuid) {
+      var base = "/api/organizations/" + orgUuid + "/projects/" + projectId;
+      return Promise.all([
+        fetchJson(base),
+        fetchJson(base + "/docs"),
+      ]);
+    }).then(function (results) {
+      var project = results[0];
+      var rawDocs = results[1] || [];
+
+      var docs = rawDocs.map(function (d) {
+        return {
+          name: d.filename || "Untitled document",
+          created_at: d.created_at || null,
+          content: d.content || "",
+        };
+      });
+
+      var name = project.name || "Untitled project";
+
+      return {
+        source: "claude",
+        type: "project",
+        id: projectId,
+        url: window.location.href,
+        name: name,
+        exported_at: new Date().toISOString(),
+        docs: docs,
+        markdown: buildProjectMarkdown(name, docs),
+      };
+    });
+  }
+
   return {
     extractChat: extractChat,
+    extractProject: extractProject,
   };
 })();
