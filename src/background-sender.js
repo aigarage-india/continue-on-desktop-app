@@ -29,6 +29,11 @@ function postOnce(url, body, contentType, authHeaderName, authHeaderValue) {
     method: "POST",
     headers: headers,
     body: body,
+    // Extension fetches to a host_permissions-granted origin send cookies
+    // for that domain by default (a webhook host the user is also logged
+    // into in their browser would otherwise leak its session/tracking
+    // cookies into every request) — explicitly opt out.
+    credentials: "omit",
     signal: controller.signal,
   }).finally(function () {
     clearTimeout(timer);
