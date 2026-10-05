@@ -78,6 +78,10 @@ body {
   gap: 8px;
 }
 
+.popup-actions + .popup-actions {
+  margin-top: 8px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

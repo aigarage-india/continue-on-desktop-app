@@ -2,6 +2,7 @@
   "use strict";
 
   var BUTTON_ID = "cod-continue-btn";
+  var N8N_BUTTON_ID = "cod-n8n-btn";
   var TOAST_ID = "cod-toast";
   var POLL_INTERVAL = 500;
   var HEADER_WAIT_MS = 2000;
@@ -10,6 +11,8 @@
   var lastUrl = "";
   var pollTimer = null;
   var enabled = true;
+  var n8nReady = false;
+  var n8nSending = false;
 
   var LANDMARK_SELECTORS = {
     claude: [
@@ -23,14 +26,18 @@
     if (!info.site) return;
 
     var storageKey = info.site === "claude" ? "enableClaude" : "enableChatGPT";
-    chrome.storage.sync.get({ enableClaude: true, enableChatGPT: true }, function (settings) {
-      enabled = settings[storageKey];
-      if (!enabled) return;
+    chrome.storage.sync.get(
+      { enableClaude: true, enableChatGPT: true, n8nExportEnabled: false, n8nWebhookUrl: "" },
+      function (settings) {
+        enabled = settings[storageKey];
+        n8nReady = !!(settings.n8nExportEnabled && settings.n8nWebhookUrl);
+        if (!enabled) return;
 
-      lastUrl = window.location.href;
-      handleUrlChange();
-      startPolling();
-    });
+        lastUrl = window.location.href;
+        handleUrlChange();
+        startPolling();
+      }
+    );
   }
 
   function startPolling() {
@@ -55,6 +62,8 @@
 
     if (!info.deepLink) {
       if (existing) existing.remove();
+      var existingN8n = document.getElementById(N8N_BUTTON_ID);
+      if (existingN8n) existingN8n.remove();
       return;
     }
 
@@ -74,6 +83,12 @@
     if (main) {
       var left = main.getBoundingClientRect().left + 12;
       btn.style.left = left + "px";
+    }
+
+    var n8nBtn = document.getElementById(N8N_BUTTON_ID);
+    if (n8nBtn) {
+      var btnRect = btn.getBoundingClientRect();
+      n8nBtn.style.left = (btnRect.right + 8) + "px";
     }
   }
 
@@ -158,6 +173,7 @@
     if (document.getElementById(BUTTON_ID)) return;
 
     var btn = createButtonElement(info);
+    btn.classList.add("cod-action-btn");
 
     if (floating) {
       btn.classList.add("cod-floating");
@@ -170,7 +186,130 @@
         container.appendChild(btn);
       }
     }
+
+    if (n8nReady) {
+      injectN8nButton(info, container, floating, btn);
+    }
   }
+
+  function isClaudeProjectUrl(url) {
+    return /^https:\/\/claude\.ai\/project\//.test(url);
+  }
+
+  function createN8nButtonElement(info) {
+    var btn = document.createElement("button");
+    btn.id = N8N_BUTTON_ID;
+    btn.setAttribute("data-site", info.site);
+    var projectPage = info.site === "claude" && isClaudeProjectUrl(window.location.href);
+    btn.title = "Send this " + (projectPage ? "project" : "chat") + " to your n8n webhook";
+
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("fill", "none");
+    svg.innerHTML =
+      '<path d="M8 2v9M8 2L4.5 5.5M8 2l3.5 3.5" ' +
+      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M2.5 11v1.5A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V11" ' +
+      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+
+    var span = document.createElement("span");
+    span.textContent = "Send to n8n";
+
+    btn.appendChild(svg);
+    btn.appendChild(span);
+
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerN8nSend(btn);
+    });
+
+    return btn;
+  }
+
+  function injectN8nButton(info, container, floating, afterElement) {
+    if (document.getElementById(N8N_BUTTON_ID)) return;
+
+    var btn = createN8nButtonElement(info);
+    btn.classList.add("cod-action-btn");
+
+    if (floating) {
+      btn.classList.add("cod-floating");
+      document.body.appendChild(btn);
+      if (info.site === "chatgpt") {
+        updateChatGPTButtonPosition();
+      }
+    } else {
+      btn.classList.add("cod-anchored");
+      if (afterElement.nextSibling) {
+        container.insertBefore(btn, afterElement.nextSibling);
+      } else {
+        container.appendChild(btn);
+      }
+    }
+  }
+
+  function triggerN8nSend(btn) {
+    if (n8nSending) return;
+    n8nSending = true;
+
+    btn.classList.add("cod-loading");
+    var span = btn.querySelector("span");
+    var originalText = span ? span.textContent : "";
+    if (span) span.textContent = "Sending...";
+
+    extractAndSend(function (result) {
+      n8nSending = false;
+      btn.classList.remove("cod-loading");
+      if (span) span.textContent = originalText;
+
+      if (result && result.ok) {
+        showToast("Sent to n8n.");
+      } else {
+        var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
+        showToast("Send to n8n failed: " + errMsg);
+      }
+    });
+  }
+
+  function extractAndSend(callback) {
+    var info = ContinueOnDesktop.getSiteInfo(window.location.href);
+    if (!info.site || !info.conversationId) {
+      callback({ ok: false, error: "No conversation detected on this page." });
+      return;
+    }
+
+    var extractPromise;
+    if (info.site === "claude") {
+      var projectPage = isClaudeProjectUrl(window.location.href);
+      extractPromise = projectPage
+        ? ClaudeExtractor.extractProject(info.conversationId)
+        : ClaudeExtractor.extractChat(info.conversationId);
+    } else if (info.site === "chatgpt") {
+      extractPromise = ChatGPTExtractor.extractChat(info.conversationId);
+    } else {
+      callback({ ok: false, error: "Unsupported site." });
+      return;
+    }
+
+    extractPromise
+      .then(function (payload) {
+        chrome.runtime.sendMessage({ type: "SEND_TO_N8N", payload: payload }, function (result) {
+          callback(result);
+        });
+      })
+      .catch(function (err) {
+        callback({ ok: false, error: err.message || String(err) });
+      });
+  }
+
+  chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+    if (!message || message.type !== "POPUP_SEND_TO_N8N") return false;
+    extractAndSend(sendResponse);
+    return true;
+  });
 
   function openDeepLink(deepLink) {
     var btn = document.getElementById(BUTTON_ID);

@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var currentDeepLink = null;
   var currentTabId = null;
+  var n8nActions = document.getElementById("n8n-actions");
+  var sendN8nBtn = document.getElementById("send-n8n-btn");
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (!tabs || !tabs[0]) {
@@ -30,6 +32,35 @@ document.addEventListener("DOMContentLoaded", function () {
     siteLabel.setAttribute("data-site", info.site);
     deepLinkText.textContent = currentDeepLink;
     supportedView.style.display = "block";
+
+    chrome.storage.sync.get(
+      { n8nExportEnabled: false, n8nWebhookUrl: "" },
+      function (settings) {
+        if (settings.n8nExportEnabled && settings.n8nWebhookUrl) {
+          n8nActions.style.display = "flex";
+        }
+      }
+    );
+  });
+
+  sendN8nBtn.addEventListener("click", function () {
+    if (!currentTabId) return;
+    sendN8nBtn.disabled = true;
+    showStatus("Sending to n8n...");
+
+    chrome.tabs.sendMessage(currentTabId, { type: "POPUP_SEND_TO_N8N" }, function (result) {
+      sendN8nBtn.disabled = false;
+      if (chrome.runtime.lastError) {
+        showStatus("Failed: " + chrome.runtime.lastError.message);
+        return;
+      }
+      if (result && result.ok) {
+        showStatus("Sent to n8n.");
+      } else {
+        var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
+        showStatus("Failed: " + errMsg);
+      }
+    });
   });
 
   openBtn.addEventListener("click", function () {
