@@ -3,6 +3,8 @@
 
   var BUTTON_ID = "cod-continue-btn";
   var N8N_BUTTON_ID = "cod-n8n-btn";
+  var N8N_FORMAT_ID = "cod-n8n-format";
+  var N8N_ROW_ID = "cod-n8n-row";
   var TOAST_ID = "cod-toast";
   var POLL_INTERVAL = 500;
   var HEADER_WAIT_MS = 2000;
@@ -13,6 +15,7 @@
   var enabled = true;
   var n8nReady = false;
   var n8nSending = false;
+  var n8nFormat = "json";
 
   var LANDMARK_SELECTORS = {
     claude: [
@@ -27,10 +30,17 @@
 
     var storageKey = info.site === "claude" ? "enableClaude" : "enableChatGPT";
     chrome.storage.sync.get(
-      { enableClaude: true, enableChatGPT: true, n8nExportEnabled: false, n8nWebhookUrl: "" },
+      {
+        enableClaude: true,
+        enableChatGPT: true,
+        n8nExportEnabled: false,
+        n8nWebhookUrl: "",
+        n8nExportFormat: "json",
+      },
       function (settings) {
         enabled = settings[storageKey];
         n8nReady = !!(settings.n8nExportEnabled && settings.n8nWebhookUrl);
+        n8nFormat = settings.n8nExportFormat;
         if (!enabled) return;
 
         lastUrl = window.location.href;
@@ -62,8 +72,7 @@
 
     if (!info.deepLink) {
       if (existing) existing.remove();
-      var existingN8n = document.getElementById(N8N_BUTTON_ID);
-      if (existingN8n) existingN8n.remove();
+      removeN8nElements();
       return;
     }
 
@@ -85,10 +94,10 @@
       btn.style.left = left + "px";
     }
 
-    var n8nBtn = document.getElementById(N8N_BUTTON_ID);
-    if (n8nBtn) {
+    var n8nRow = document.getElementById(N8N_ROW_ID);
+    if (n8nRow) {
       var btnRect = btn.getBoundingClientRect();
-      n8nBtn.style.left = (btnRect.right + 8) + "px";
+      n8nRow.style.left = (btnRect.right + 8) + "px";
     }
   }
 
@@ -229,23 +238,74 @@
     return btn;
   }
 
+  function createN8nFormatSelect() {
+    var select = document.createElement("select");
+    select.id = N8N_FORMAT_ID;
+    select.title = "Format to send to n8n";
+
+    var jsonOpt = document.createElement("option");
+    jsonOpt.value = "json";
+    jsonOpt.textContent = "JSON";
+
+    var mdOpt = document.createElement("option");
+    mdOpt.value = "markdown";
+    mdOpt.textContent = "MD";
+
+    select.appendChild(jsonOpt);
+    select.appendChild(mdOpt);
+    select.value = n8nFormat;
+
+    select.addEventListener("click", function (e) {
+      e.stopPropagation();
+    });
+
+    select.addEventListener("change", function () {
+      n8nFormat = select.value;
+      chrome.storage.sync.set({ n8nExportFormat: select.value });
+    });
+
+    return select;
+  }
+
+  function removeN8nElements() {
+    var row = document.getElementById(N8N_ROW_ID);
+    if (row) {
+      row.remove();
+      return;
+    }
+    var btn = document.getElementById(N8N_BUTTON_ID);
+    if (btn) btn.remove();
+    var select = document.getElementById(N8N_FORMAT_ID);
+    if (select) select.remove();
+  }
+
   function injectN8nButton(info, container, floating, afterElement) {
     if (document.getElementById(N8N_BUTTON_ID)) return;
 
+    var select = createN8nFormatSelect();
     var btn = createN8nButtonElement(info);
     btn.classList.add("cod-action-btn");
 
     if (floating) {
-      btn.classList.add("cod-floating");
-      document.body.appendChild(btn);
+      var row = document.createElement("div");
+      row.id = N8N_ROW_ID;
+      row.className = "cod-n8n-floating-row";
+      row.appendChild(select);
+      row.appendChild(btn);
+      document.body.appendChild(row);
+
       if (info.site === "chatgpt") {
+        row.classList.add("cod-n8n-floating-row-chatgpt");
         updateChatGPTButtonPosition();
       }
     } else {
+      select.classList.add("cod-anchored-select");
       btn.classList.add("cod-anchored");
       if (afterElement.nextSibling) {
-        container.insertBefore(btn, afterElement.nextSibling);
+        container.insertBefore(select, afterElement.nextSibling);
+        container.insertBefore(btn, select.nextSibling);
       } else {
+        container.appendChild(select);
         container.appendChild(btn);
       }
     }

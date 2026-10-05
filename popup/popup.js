@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var currentTabId = null;
   var n8nActions = document.getElementById("n8n-actions");
   var sendN8nBtn = document.getElementById("send-n8n-btn");
+  var n8nFormatSelect = document.getElementById("n8n-format-select");
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (!tabs || !tabs[0]) {
@@ -34,13 +35,18 @@ document.addEventListener("DOMContentLoaded", function () {
     supportedView.style.display = "block";
 
     chrome.storage.sync.get(
-      { n8nExportEnabled: false, n8nWebhookUrl: "" },
+      { n8nExportEnabled: false, n8nWebhookUrl: "", n8nExportFormat: "json" },
       function (settings) {
+        n8nFormatSelect.value = settings.n8nExportFormat;
         if (settings.n8nExportEnabled && settings.n8nWebhookUrl) {
           n8nActions.style.display = "flex";
         }
       }
     );
+  });
+
+  n8nFormatSelect.addEventListener("change", function () {
+    chrome.storage.sync.set({ n8nExportFormat: n8nFormatSelect.value });
   });
 
   sendN8nBtn.addEventListener("click", function () {
