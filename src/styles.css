@@ -100,6 +100,10 @@ html.dark {
   margin-right: 8px;
 }
 
+#cod-n8n-btn.cod-anchored {
+  margin-right: 0;
+}
+
 .cod-action-btn.cod-floating {
   position: fixed;
   bottom: 24px;
@@ -125,14 +129,23 @@ html.dark {
 .cod-anchored-select {
   margin-left: 4px;
   height: 28px;
+}
+
+.cod-format-select {
   font-family: inherit;
   font-size: 12px;
   color: var(--cod-text);
-  background: var(--cod-bg);
+  background-color: var(--cod-bg);
   border: 1px solid var(--cod-border);
   border-radius: 6px;
-  padding: 0 4px;
+  padding: 0 20px 0 6px;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
 }
 
 .cod-n8n-floating-row {
@@ -147,14 +160,8 @@ html.dark {
 
 .cod-n8n-floating-row select {
   height: 32px;
-  font-family: inherit;
   font-size: 13px;
-  color: var(--cod-text);
-  background: var(--cod-bg);
-  border: 1px solid var(--cod-border);
   border-radius: 8px;
-  padding: 0 6px;
-  cursor: pointer;
 }
 
 .cod-n8n-floating-row .cod-action-btn {
@@ -174,7 +181,6 @@ html.dark {
   height: 26px;
   font-size: 12px;
   border-radius: 6px;
-  padding: 0 4px;
 }
 
 .cod-n8n-floating-row-chatgpt .cod-action-btn {

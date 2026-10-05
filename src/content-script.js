@@ -246,6 +246,7 @@
   function createN8nFormatSelect() {
     var select = document.createElement("select");
     select.id = N8N_FORMAT_ID;
+    select.className = "cod-format-select";
     select.title = "Format to send to n8n";
 
     var jsonOpt = document.createElement("option");
