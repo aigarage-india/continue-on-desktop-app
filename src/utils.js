@@ -11,7 +11,7 @@ var ContinueOnDesktop = (function () {
     },
     {
       site: "chatgpt",
-      pattern: /^https:\/\/chatgpt\.com\/c\/([a-zA-Z0-9_-]+)/,
+      pattern: /^https:\/\/chatgpt\.com\/(?:g\/g-p-[^/]+\/)?c\/([a-zA-Z0-9_-]+)/,
       buildDeepLink: function (match) {
         return "chatgpt://chatgpt.com/threads/" + match[1];
       },
