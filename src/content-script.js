@@ -32,11 +32,19 @@
   ];
 
   function findChatGPTComposerRect() {
+    // Scope to <main> and require a real on-screen size — an unscoped
+    // query can match a hidden/zero-size element elsewhere in the page
+    // (e.g. a sidebar search or rename field), which would otherwise park
+    // the button at that element's (often top-left) position.
+    var scope = document.querySelector("main") || document;
     for (var i = 0; i < CHATGPT_INPUT_SELECTORS.length; i++) {
-      var el = document.querySelector(CHATGPT_INPUT_SELECTORS[i]);
+      var el = scope.querySelector(CHATGPT_INPUT_SELECTORS[i]);
       if (el) {
         var form = el.closest("form");
-        return (form || el).getBoundingClientRect();
+        var rect = (form || el).getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          return rect;
+        }
       }
     }
     return null;
