@@ -307,11 +307,11 @@
       select.classList.add("cod-anchored-select");
       btn.classList.add("cod-anchored");
       if (afterElement.nextSibling) {
-        container.insertBefore(select, afterElement.nextSibling);
-        container.insertBefore(btn, select.nextSibling);
+        container.insertBefore(btn, afterElement.nextSibling);
+        container.insertBefore(select, btn.nextSibling);
       } else {
-        container.appendChild(select);
         container.appendChild(btn);
+        container.appendChild(select);
       }
     }
   }
