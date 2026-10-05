@@ -101,15 +101,8 @@
     var n8nRow = document.getElementById(N8N_ROW_ID);
     if (n8nRow) {
       var btnRect = btn.getBoundingClientRect();
-      var hasTitleBar = !!document.querySelector('header nav[aria-label="Breadcrumb"]');
-
-      if (hasTitleBar) {
-        n8nRow.style.left = btnRect.left + "px";
-        n8nRow.style.top = (btnRect.bottom + 8) + "px";
-      } else {
-        n8nRow.style.left = (btnRect.right + 8) + "px";
-        n8nRow.style.top = btn.style.top;
-      }
+      n8nRow.style.left = btnRect.left + "px";
+      n8nRow.style.top = (btnRect.bottom + 8) + "px";
     }
   }
 
