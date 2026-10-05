@@ -32,30 +32,44 @@ document.addEventListener("DOMContentLoaded", function () {
 function initN8nSection() {
   var toggleExport = document.getElementById("toggle-n8n-export");
   var webhookUrlInput = document.getElementById("webhook-url");
+  var toggleWebhookVisibility = document.getElementById("toggle-webhook-visibility");
   var saveWebhookBtn = document.getElementById("save-webhook-btn");
   var exportFormatSelect = document.getElementById("export-format");
   var testConnectionBtn = document.getElementById("test-connection-btn");
   var webhookStatus = document.getElementById("webhook-status");
 
   chrome.storage.sync.get(
-    { n8nExportEnabled: false, n8nWebhookUrl: "", n8nExportFormat: "json" },
+    { n8nExportEnabled: false, n8nExportFormat: "json" },
     function (settings) {
       toggleExport.checked = settings.n8nExportEnabled;
-      webhookUrlInput.value = settings.n8nWebhookUrl;
       exportFormatSelect.value = settings.n8nExportFormat;
-
-      if (settings.n8nWebhookUrl) {
-        checkPermissionGranted(settings.n8nWebhookUrl, function (granted) {
-          if (!granted) {
-            showWebhookStatus(
-              "Permission for this URL was revoked. Click Save to re-grant it.",
-              "error"
-            );
-          }
-        });
-      }
     }
   );
+
+  chrome.storage.local.get({ n8nWebhookUrl: "" }, function (settings) {
+    webhookUrlInput.value = settings.n8nWebhookUrl;
+
+    if (settings.n8nWebhookUrl) {
+      checkPermissionGranted(settings.n8nWebhookUrl, function (granted) {
+        if (!granted) {
+          showWebhookStatus(
+            "Permission for this URL was revoked. Click Save to re-grant it.",
+            "error"
+          );
+        }
+      });
+    }
+  });
+
+  toggleWebhookVisibility.addEventListener("click", function () {
+    var showing = webhookUrlInput.type === "text";
+    webhookUrlInput.type = showing ? "password" : "text";
+    toggleWebhookVisibility.textContent = showing ? "Show" : "Hide";
+    toggleWebhookVisibility.setAttribute(
+      "aria-label",
+      showing ? "Show webhook URL" : "Hide webhook URL"
+    );
+  });
 
   exportFormatSelect.addEventListener("change", function () {
     chrome.storage.sync.set({ n8nExportFormat: exportFormatSelect.value });
@@ -68,7 +82,7 @@ function initN8nSection() {
   saveWebhookBtn.addEventListener("click", function () {
     var url = webhookUrlInput.value.trim();
     if (!url) {
-      chrome.storage.sync.set({ n8nWebhookUrl: "" });
+      chrome.storage.local.set({ n8nWebhookUrl: "" });
       showWebhookStatus("Webhook URL cleared.", "success");
       return;
     }
@@ -84,8 +98,15 @@ function initN8nSection() {
         showWebhookStatus("Permission denied — webhook URL not saved.", "error");
         return;
       }
-      chrome.storage.sync.set({ n8nWebhookUrl: url }, function () {
-        showWebhookStatus("Webhook URL saved.", "success");
+      chrome.storage.local.set({ n8nWebhookUrl: url }, function () {
+        if (isInsecureUrl(url)) {
+          showWebhookStatus(
+            "Webhook URL saved. Warning: this is an unencrypted http:// URL — your conversation content will travel in plain text.",
+            "error"
+          );
+        } else {
+          showWebhookStatus("Webhook URL saved.", "success");
+        }
       });
     });
   });
@@ -144,6 +165,17 @@ function initN8nSection() {
       return parsed.origin;
     } catch (e) {
       return null;
+    }
+  }
+
+  function isInsecureUrl(url) {
+    try {
+      var parsed = new URL(url);
+      if (parsed.protocol !== "http:") return false;
+      var host = parsed.hostname;
+      return host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
+    } catch (e) {
+      return false;
     }
   }
 

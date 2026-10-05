@@ -35,18 +35,20 @@
         enableClaude: true,
         enableChatGPT: true,
         n8nExportEnabled: false,
-        n8nWebhookUrl: "",
         n8nExportFormat: "json",
       },
-      function (settings) {
-        enabled = settings[storageKey];
-        n8nReady = !!(settings.n8nExportEnabled && settings.n8nWebhookUrl);
-        n8nFormat = settings.n8nExportFormat;
-        if (!enabled) return;
+      function (syncSettings) {
+        enabled = syncSettings[storageKey];
+        n8nFormat = syncSettings.n8nExportFormat;
 
-        lastUrl = window.location.href;
-        handleUrlChange();
-        startPolling();
+        chrome.storage.local.get({ n8nWebhookUrl: "" }, function (localSettings) {
+          n8nReady = !!(syncSettings.n8nExportEnabled && localSettings.n8nWebhookUrl);
+          if (!enabled) return;
+
+          lastUrl = window.location.href;
+          handleUrlChange();
+          startPolling();
+        });
       }
     );
   }

@@ -36,12 +36,15 @@ document.addEventListener("DOMContentLoaded", function () {
     supportedView.style.display = "block";
 
     chrome.storage.sync.get(
-      { n8nExportEnabled: false, n8nWebhookUrl: "", n8nExportFormat: "json" },
-      function (settings) {
-        n8nFormatSelect.value = settings.n8nExportFormat;
-        if (settings.n8nExportEnabled && settings.n8nWebhookUrl) {
-          n8nActions.style.display = "block";
-        }
+      { n8nExportEnabled: false, n8nExportFormat: "json" },
+      function (syncSettings) {
+        n8nFormatSelect.value = syncSettings.n8nExportFormat;
+
+        chrome.storage.local.get({ n8nWebhookUrl: "" }, function (localSettings) {
+          if (syncSettings.n8nExportEnabled && localSettings.n8nWebhookUrl) {
+            n8nActions.style.display = "block";
+          }
+        });
       }
     );
   });

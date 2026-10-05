@@ -45,7 +45,10 @@
 
         <label class="field-label" for="webhook-url">n8n webhook URL</label>
         <div class="field-row">
-          <input type="url" id="webhook-url" placeholder="https://your-n8n.example.com/webhook/...">
+          <div class="webhook-input-wrap">
+            <input type="password" id="webhook-url" placeholder="https://your-n8n.example.com/webhook/..." autocomplete="off">
+            <button type="button" id="toggle-webhook-visibility" class="webhook-visibility-btn" aria-label="Show webhook URL">Show</button>
+          </div>
           <button id="save-webhook-btn" class="btn btn-secondary">Save</button>
         </div>
 

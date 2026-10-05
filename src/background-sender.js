@@ -38,20 +38,19 @@ function delay(ms) {
 
 function sendToN8n(payload) {
   return new Promise(function (resolve) {
-    chrome.storage.sync.get(
-      { n8nWebhookUrl: "", n8nExportFormat: "json" },
-      function (settings) {
-        if (!settings.n8nWebhookUrl) {
-          resolve({ ok: false, error: "No n8n webhook URL configured." });
-          return;
-        }
-
-        var built = buildBody(payload, settings.n8nExportFormat);
-
-        attempt(settings.n8nWebhookUrl, built.body, built.contentType, true)
-          .then(resolve);
+    chrome.storage.local.get({ n8nWebhookUrl: "" }, function (localSettings) {
+      if (!localSettings.n8nWebhookUrl) {
+        resolve({ ok: false, error: "No n8n webhook URL configured." });
+        return;
       }
-    );
+
+      chrome.storage.sync.get({ n8nExportFormat: "json" }, function (syncSettings) {
+        var built = buildBody(payload, syncSettings.n8nExportFormat);
+
+        attempt(localSettings.n8nWebhookUrl, built.body, built.contentType, true)
+          .then(resolve);
+      });
+    });
   });
 }
 

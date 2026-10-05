@@ -72,7 +72,9 @@ Extraction reads claude.ai's and chatgpt.com's own same-origin API endpoints (th
 
 **Desktop button:** collects and transmits nothing. It reads only the current tab's URL to generate a desktop app deep link. Preferences (per-site toggles) are stored locally in Chrome's `chrome.storage.sync` and never leave your browser.
 
-**Send to n8n (opt-in, off by default):** when you enable it and click "Send to n8n", the full content of the current chat or Claude Project — including message text — is sent to the webhook URL you configured, in the format you chose (JSON or Markdown). This only happens on an explicit click; nothing is sent automatically or in the background. The webhook URL and format preference are stored locally the same way the toggles are. No conversation content is ever stored by the extension itself — it's read, sent once, and discarded. Make sure you trust whatever is on the other end of the webhook URL you enter, since that destination receives your conversation content in full.
+**Send to n8n (opt-in, off by default):** when you enable it and click "Send to n8n", the full content of the current chat or Claude Project — including message text — is sent to the webhook URL you configured, in the format you chose (JSON or Markdown). This only happens on an explicit click; nothing is sent automatically or in the background. No conversation content is ever stored by the extension itself — it's read, sent once, and discarded. Make sure you trust whatever is on the other end of the webhook URL you enter, since that destination receives your conversation content in full.
+
+**Webhook URL handling:** since a webhook URL often works like a de-facto secret (anyone with it can trigger your n8n workflow), it's stored in `chrome.storage.local` — device-only, never synced via your Google account like the other preferences. The Options page masks it like a password field (with a show/hide toggle), and you'll see a warning if you enter a plain `http://` URL (other than localhost), since that would send conversation content over the network unencrypted.
 
 ## License
 
