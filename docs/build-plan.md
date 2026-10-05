@@ -510,11 +510,17 @@ metadata/a download URL — is unconfirmed. Current code tries `f.content`
 / `f.text` and falls back to a placeholder string if neither is present.
 Needs a live test against a project that actually has files attached.
 
+Button position was iterated live on a real project page (Ritual Labs):
+floating-next-to-composer looked wrong for this page type, so project
+pages now use anchored injection into the header row next to Share/"..."
+(`button[aria-label="Project actions"]` as landmark) — same approach as
+Claude, instead of floating like regular ChatGPT chats.
+
 **Still open:**
 - [ ] Live-test against a project with files attached — confirm file
       content comes through (or fix the fallback if the API shape differs)
-- [ ] Confirm button injection/positioning on the project page itself
-      (composer may or may not be present depending on project state)
+- [ ] Click "Send to n8n" on the project page and confirm the payload
+      (name, instructions) looks right
 
 **Sign-off gate:** live-tested on a real project page before calling this
 phase done.
