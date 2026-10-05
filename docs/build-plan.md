@@ -382,18 +382,22 @@ mapping. Three real issues found and fixed during testing:
 - [ ] Confirm the 200-event-limit caveat is acceptable, or decide pagination
       is needed sooner
 
-**8b (Claude Cowork) — implemented, not yet live-tested.** Live capture of
-a real Cowork session (`cse_...` id) showed it hits the exact same
+**8b (Claude Cowork) — live-tested, working.** Live capture of a real
+Cowork session (`cse_...` id) showed it hits the exact same
 `/v1/code/sessions/{id}` + `/events` API as Code sessions — same
 `response_shape` wrapper, same flat `title` field, same event log shape —
 and the existing header selector already anchors the n8n button there
-with no changes. So `extractCoworkSession()` now reuses `extractCodeSession()`'s
-logic (refactored into shared `extractCodeLikeSession(sessionId, type)`)
-instead of needing separate investigation/implementation.
-- [ ] Click "Send to n8n" on a real Cowork session and confirm the payload
-      looks right (title, message order, role mapping, tool rendering)
+with no changes. So `extractCoworkSession()` reuses `extractCodeSession()`'s
+logic (refactored into shared `extractCodeLikeSession(sessionId, type)`).
+Send succeeded end-to-end, correct title, correct message order/roles.
 
-**Sign-off gate:** 8b live-tested and confirmed before calling Phase 8 done.
+One bug found and fixed: a backend-injected `<system-reminder>...</system-reminder>`
+block (timezone boilerplate, not something the user typed) was coming
+through as its own synthetic "user" event and showing up as a fake human
+message in the export. Now filtered out in `codeEventToText()` — applies
+to both 8a and 8b since they share the same extraction path.
+
+**Sign-off: 8a and 8b both done.** Phase 8 complete.
 
 ---
 

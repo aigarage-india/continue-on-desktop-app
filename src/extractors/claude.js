@@ -212,12 +212,24 @@ var ClaudeExtractor = (function () {
     return "";
   }
 
+  // Backend-injected boilerplate (e.g. a timezone note), not something the
+  // user typed — arrives as its own synthetic "user" event/block and
+  // shouldn't show up as real user text in the export.
+  function isPureSystemReminder(text) {
+    return typeof text === "string" && /^<system-reminder>[\s\S]*<\/system-reminder>$/.test(text.trim());
+  }
+
   function codeEventToText(message) {
     if (typeof message.content === "string") {
-      return message.content;
+      return isPureSystemReminder(message.content) ? "" : message.content;
     }
     if (Array.isArray(message.content)) {
-      return message.content.map(codeBlockToText).filter(Boolean).join("\n\n");
+      return message.content
+        .map(codeBlockToText)
+        .filter(function (text) {
+          return text && !isPureSystemReminder(text);
+        })
+        .join("\n\n");
     }
     return "";
   }
