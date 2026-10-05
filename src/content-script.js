@@ -313,6 +313,21 @@
     formatSelect.disabled = true;
     appendPlaceholderOption(formatSelect, "Format");
 
+    // "Send to n8n" is the default on every load when it's available at
+    // all — action and destination start pre-picked. Format stays at its
+    // placeholder: re-picking an already-selected <select> value fires no
+    // change event in any browser, so the one dropdown that actually
+    // fires the send can never be pre-filled, or there'd be no way to
+    // trigger it without first picking something else and back again.
+    if (actions.indexOf("send") !== -1) {
+      actionSelect.value = "send";
+      populateDestOptions(destSelect, "send");
+      destSelect.value = "n8n";
+      destSelect.disabled = false;
+      populateFormatOptions(formatSelect);
+      formatSelect.disabled = false;
+    }
+
     [actionSelect, destSelect, formatSelect].forEach(function (sel) {
       sel.addEventListener("click", function (e) {
         e.stopPropagation();
