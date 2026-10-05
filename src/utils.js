@@ -44,6 +44,17 @@ var ContinueOnDesktop = (function () {
         return "chat";
       },
     },
+    {
+      site: "chatgpt",
+      pattern: /^https:\/\/chatgpt\.com\/g\/(g-p-[a-zA-Z0-9]+)\/project/,
+      buildDeepLink: function () {
+        // No confirmed desktop protocol handler for a project page itself.
+        return null;
+      },
+      type: function () {
+        return "project";
+      },
+    },
   ];
 
   function getSiteInfo(url) {

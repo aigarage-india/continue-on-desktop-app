@@ -490,26 +490,27 @@ button appears there today. Goal: add project-level export analogous to
 Claude's existing project export (`extractProject()` in `claude.js`) —
 send the project's files/instructions, not every chat inside it.
 
-**Status: investigation not started — unlike 8b, this one can't reuse an
-already-confirmed API.** ChatGPT's project ("gizmo") backend is unrelated
-to claude.ai's, so needs its own live capture, same two-step process as
-every other site added so far:
+**Status: API confirmed, implemented — not yet live-tested.** Live capture
+confirmed `GET /backend-api/gizmos/g-p-{id}?include_file_limits=true`
+(bearer token, same as `extractChat()`) returns `{ gizmo: { display: { name
+}, instructions, ... }, files: [...] }`. URL pattern added to `utils.js`
+(`chatgpt.com/g/g-p-{id}/project` → type `project`, no deep link — no
+confirmed desktop protocol handler for the project page itself).
+`extractProject()` added to `chatgpt.js`: exports the project's
+instructions plus any files, mirroring Claude's `docs[]`/markdown shape.
 
-1. **URL pattern** — confirm the exact URL shape (`g-p-{id}` id format,
-   whether `/project` is the only suffix or there are variants).
-2. **API shape** — open the project page, Network tab → Fetch/XHR, find
-   the request(s) for project metadata + files/instructions (likely
-   something under `/backend-api/gizmos/g-p-{id}` or `/backend-api/.../projects/{id}`,
-   mirroring how `extractChat()` already calls `/backend-api/conversation/{id}`
-   with a bearer token from `/api/auth/session`). Capture full URL,
-   headers, and response JSON.
-3. **DOM anchor** — inspect the project page's header/toolbar area,
-   capture `outerHTML`, so a button-anchor selector can be picked (or
-   fall back to the floating button like ChatGPT chats already do).
+**Known gap:** the captured response had an empty `files: []` array (no
+files uploaded to that project), so the actual shape of a populated file
+entry — in particular whether it carries inline content or only
+metadata/a download URL — is unconfirmed. Current code tries `f.content`
+/ `f.text` and falls back to a placeholder string if neither is present.
+Needs a live test against a project that actually has files attached.
 
-Nothing gets coded until that capture is in hand — don't assume it shares
-either Claude's project shape or ChatGPT's own chat (`mapping`/node-tree)
-shape.
+**Still open:**
+- [ ] Live-test against a project with files attached — confirm file
+      content comes through (or fix the fallback if the API shape differs)
+- [ ] Confirm button injection/positioning on the project page itself
+      (composer may or may not be present depending on project state)
 
 **Sign-off gate:** live-tested on a real project page before calling this
 phase done.

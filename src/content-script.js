@@ -112,13 +112,21 @@
     var btn = document.getElementById(BUTTON_ID);
     if (!btn || btn.getAttribute("data-site") !== "chatgpt") return;
 
+    var n8nRow = document.getElementById(N8N_ROW_ID);
+    var gap = 8;
+    var btnHeight = btn.offsetHeight || 32;
+    var rowHeight = n8nRow ? (n8nRow.offsetHeight || 32) : 0;
+    var stackHeight = btnHeight + (n8nRow ? gap + rowHeight : 0);
+
     var left, top;
     var composerRect = findChatGPTComposerRect();
 
     if (composerRect) {
-      var btnHeight = btn.offsetHeight || 32;
+      // Bottom-align the whole button+n8n-row stack to the input box's
+      // bottom edge, growing upward — so it never drops below the input,
+      // even if the stack is taller than a single-line input.
       left = composerRect.right + 12;
-      top = composerRect.top + composerRect.height / 2 - btnHeight / 2;
+      top = composerRect.bottom - stackHeight;
       left = Math.min(left, window.innerWidth - 140);
     } else {
       var main = document.querySelector("main");
@@ -130,11 +138,9 @@
     btn.style.left = left + "px";
     btn.style.top = top + "px";
 
-    var n8nRow = document.getElementById(N8N_ROW_ID);
     if (n8nRow) {
-      var btnRect = btn.getBoundingClientRect();
-      n8nRow.style.left = btnRect.left + "px";
-      n8nRow.style.top = (btnRect.bottom + 8) + "px";
+      n8nRow.style.left = left + "px";
+      n8nRow.style.top = (top + btnHeight + gap) + "px";
     }
   }
 
@@ -398,7 +404,9 @@
         extractPromise = ClaudeExtractor.extractChat(info.conversationId);
       }
     } else if (info.site === "chatgpt") {
-      extractPromise = ChatGPTExtractor.extractChat(info.conversationId);
+      extractPromise = info.type === "project"
+        ? ChatGPTExtractor.extractProject(info.conversationId)
+        : ChatGPTExtractor.extractChat(info.conversationId);
     } else {
       callback({ ok: false, error: "Unsupported site." });
       return;

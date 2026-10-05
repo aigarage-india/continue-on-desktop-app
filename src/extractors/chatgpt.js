@@ -122,7 +122,63 @@ var ChatGPTExtractor = (function () {
     });
   }
 
+  function buildProjectMarkdown(name, docs) {
+    var lines = ["# " + name, ""];
+    for (var i = 0; i < docs.length; i++) {
+      lines.push("## " + docs[i].name);
+      lines.push("");
+      lines.push(docs[i].content);
+      lines.push("");
+    }
+    return lines.join("\n");
+  }
+
+  function extractProject(projectId) {
+    return getAccessToken().then(function (token) {
+      return fetchJson(
+        "/backend-api/gizmos/" + projectId + "?include_file_limits=true",
+        token
+      );
+    }).then(function (data) {
+      var gizmo = data.gizmo || {};
+      var display = gizmo.display || {};
+      var name = display.name || gizmo.id || "Untitled project";
+      var rawFiles = data.files || [];
+
+      var docs = [];
+      if (gizmo.instructions) {
+        docs.push({
+          name: "Instructions",
+          created_at: gizmo.updated_at || null,
+          content: gizmo.instructions,
+        });
+      }
+      rawFiles.forEach(function (f) {
+        docs.push({
+          name: f.name || f.file_name || "Untitled file",
+          created_at: f.created_at || null,
+          // The gizmo API only confirmed to return file metadata here, not
+          // inline content — fall back to a note rather than guessing a
+          // content field that may not exist.
+          content: f.content || f.text || "[file content not available via this API]",
+        });
+      });
+
+      return {
+        source: "chatgpt",
+        type: "project",
+        id: projectId,
+        url: window.location.href,
+        name: name,
+        exported_at: new Date().toISOString(),
+        docs: docs,
+        markdown: buildProjectMarkdown(name, docs),
+      };
+    });
+  }
+
   return {
     extractChat: extractChat,
+    extractProject: extractProject,
   };
 })();
