@@ -121,7 +121,7 @@ var ClaudeExtractor = (function () {
 
       var docs = rawDocs.map(function (d) {
         return {
-          name: d.filename || "Untitled document",
+          name: d.file_name || "Untitled document",
           created_at: d.created_at || null,
           content: d.content || "",
         };
