@@ -10,6 +10,7 @@
   --cod-n8n-accent: #ea4b71;
   --cod-n8n-accent-bg: rgba(234, 75, 113, 0.1);
   --cod-success: #16a34a;
+  --cod-error: #dc2626;
   --cod-accent: #bcef37;
   --cod-accent-bg: rgba(188, 239, 55, 0.14);
 }
@@ -134,12 +135,21 @@ html.dark {
   color: var(--cod-toast-text);
   background: var(--cod-toast-bg);
   border-radius: 8px;
+  border-left: 4px solid var(--cod-border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10000;
   transition: top 0.3s ease;
   white-space: normal;
   max-width: min(480px, 90vw);
   text-align: center;
+}
+
+#cod-toast.cod-toast-success {
+  border-left-color: var(--cod-success);
+}
+
+#cod-toast.cod-toast-error {
+  border-left-color: var(--cod-error);
 }
 
 #cod-toast.cod-toast-visible {

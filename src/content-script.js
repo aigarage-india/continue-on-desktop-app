@@ -281,10 +281,10 @@
       formatSelect.disabled = false;
 
       if (result && result.ok) {
-        showToast("Sent to n8n.");
+        showToast("Sent to n8n.", "success");
       } else {
         var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
-        showToast("Send to n8n failed: " + errMsg, 8000);
+        showToast("Send to n8n failed: " + errMsg, "error");
       }
     });
   }
@@ -438,18 +438,21 @@
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function () {
-      showToast("Link copied to clipboard! Paste in browser or open the desktop app manually.");
+      showToast("Link copied to clipboard! Paste in browser or open the desktop app manually.", "info");
     }).catch(function () {
-      showToast("Deep link: " + text);
+      showToast("Deep link: " + text, "info");
     });
   }
 
-  function showToast(message, duration) {
+  var TOAST_DURATIONS = { success: 3000, error: 8000, info: 3000 };
+
+  function showToast(message, type) {
     var existing = document.getElementById(TOAST_ID);
     if (existing) existing.remove();
 
     var toast = document.createElement("div");
     toast.id = TOAST_ID;
+    toast.className = type ? "cod-toast-" + type : "";
     toast.textContent = message;
     document.body.appendChild(toast);
 
@@ -462,7 +465,7 @@
       setTimeout(function () {
         toast.remove();
       }, 300);
-    }, duration || 3000);
+    }, TOAST_DURATIONS[type] || 3000);
   }
 
   if (document.readyState === "loading") {
