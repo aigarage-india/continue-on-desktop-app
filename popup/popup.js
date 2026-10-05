@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
       function (settings) {
         n8nFormatSelect.value = settings.n8nExportFormat;
         if (settings.n8nExportEnabled && settings.n8nWebhookUrl) {
-          n8nActions.style.display = "flex";
+          n8nActions.style.display = "block";
         }
       }
     );

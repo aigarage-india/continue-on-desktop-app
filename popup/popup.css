@@ -9,7 +9,7 @@ body {
   font-size: 13px;
   color: #1a1a1a;
   background: #ffffff;
-  width: 280px;
+  width: 310px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -78,8 +78,31 @@ body {
   gap: 8px;
 }
 
-.popup-actions + .popup-actions {
-  margin-top: 8px;
+.n8n-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+@media (prefers-color-scheme: dark) {
+  .n8n-section {
+    border-top-color: #333;
+  }
+}
+
+.n8n-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .n8n-section-label {
+    color: #777;
+  }
 }
 
 #send-n8n-btn {
