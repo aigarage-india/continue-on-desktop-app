@@ -142,14 +142,72 @@ var ClaudeExtractor = (function () {
     });
   }
 
+  function codeBlockToText(block) {
+    if (!block) return "";
+    if (block.type === "text" && typeof block.text === "string") {
+      return block.text;
+    }
+    if (block.type === "tool_use") {
+      return "[tool use: " + (block.name || "unknown") + "]";
+    }
+    if (block.type === "tool_result") {
+      return "[tool result]";
+    }
+    return "";
+  }
+
+  function codeEventToText(message) {
+    if (typeof message.content === "string") {
+      return message.content;
+    }
+    if (Array.isArray(message.content)) {
+      return message.content.map(codeBlockToText).filter(Boolean).join("\n\n");
+    }
+    return "";
+  }
+
   function extractCodeSession(sessionId) {
-    return Promise.reject(
-      new Error(
-        "Claude Code session export isn't implemented yet (Phase 8a) — " +
-          "the same-origin API this session's transcript comes from hasn't " +
-          "been confirmed yet."
-      )
-    );
+    var base = "/v1/code/sessions/" + sessionId;
+    return Promise.all([
+      fetchJson(base),
+      fetchJson(base + "/events?limit=200&sort_order=desc"),
+    ]).then(function (results) {
+      var session = results[0];
+      var rawEvents = (results[1] && results[1].data) || [];
+
+      var sortedEvents = rawEvents.slice().sort(function (a, b) {
+        return Number(a.sequence_num) - Number(b.sequence_num);
+      });
+
+      var messages = [];
+      sortedEvents.forEach(function (event) {
+        if (event.event_type !== "user" && event.event_type !== "assistant") return;
+        var message = event.payload && event.payload.message;
+        if (!message) return;
+
+        var text = codeEventToText(message);
+        if (!text) return;
+
+        messages.push({
+          role: event.event_type === "user" ? "human" : "assistant",
+          created_at: event.created_at || null,
+          text: text,
+        });
+      });
+
+      var title = session.title || "Untitled Code session";
+
+      return {
+        source: "claude",
+        type: "code",
+        id: sessionId,
+        url: window.location.href,
+        title: title,
+        exported_at: new Date().toISOString(),
+        messages: messages,
+        markdown: buildMarkdown(title, messages),
+      };
+    });
   }
 
   function extractCoworkSession(sessionId) {
