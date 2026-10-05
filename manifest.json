@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Continue on Desktop App by AI Garage",
-  "version": "1.0.2",
-  "description": "Open your Claude or ChatGPT conversation in the desktop app with one click.",
+  "version": "1.1.0",
+  "description": "Open your Claude or ChatGPT conversation in the desktop app with one click, or send it to your own n8n webhook.",
   "permissions": ["activeTab", "storage"],
   "host_permissions": [
     "https://claude.ai/*",
