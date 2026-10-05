@@ -124,7 +124,7 @@ html.dark {
 
 #cod-toast {
   position: fixed;
-  bottom: -100px;
+  top: -100px;
   left: 50%;
   transform: translateX(-50%);
   padding: 10px 20px;
@@ -136,12 +136,12 @@ html.dark {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10000;
-  transition: bottom 0.3s ease;
+  transition: top 0.3s ease;
   white-space: normal;
   max-width: min(480px, 90vw);
   text-align: center;
 }
 
 #cod-toast.cod-toast-visible {
-  bottom: 24px;
+  top: 24px;
 }
