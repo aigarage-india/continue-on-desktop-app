@@ -146,16 +146,68 @@ var ClaudeExtractor = (function () {
     });
   }
 
+  var TOOL_INPUT_MAX_LEN = 150;
+  var TOOL_RESULT_MAX_LEN = 400;
+  var TOOL_INPUT_PREFERRED_KEYS = [
+    "command", "file_path", "path", "pattern", "query", "url",
+    "notebook_path", "description", "prompt",
+  ];
+
+  function truncateForDisplay(value, maxLen) {
+    var str = typeof value === "string" ? value : JSON.stringify(value);
+    if (str.length <= maxLen) return str;
+    return str.slice(0, maxLen) + "… (" + str.length + " chars)";
+  }
+
+  function condenseToolInput(input) {
+    if (!input || typeof input !== "object") return "";
+
+    var parts = [];
+    TOOL_INPUT_PREFERRED_KEYS.forEach(function (key) {
+      if (input[key] !== undefined && input[key] !== null) {
+        parts.push(key + ": " + truncateForDisplay(input[key], TOOL_INPUT_MAX_LEN));
+      }
+    });
+
+    if (!parts.length) {
+      Object.keys(input).slice(0, 2).forEach(function (key) {
+        parts.push(key + ": " + truncateForDisplay(input[key], TOOL_INPUT_MAX_LEN));
+      });
+    }
+
+    return parts.join(", ");
+  }
+
+  function condenseToolResultContent(content) {
+    var text = "";
+    if (typeof content === "string") {
+      text = content;
+    } else if (Array.isArray(content)) {
+      text = content
+        .map(function (item) {
+          if (item && typeof item.text === "string") return item.text;
+          if (item && item.type === "image") return "[image]";
+          return "";
+        })
+        .filter(Boolean)
+        .join("\n");
+    }
+    return text ? truncateForDisplay(text, TOOL_RESULT_MAX_LEN) : "";
+  }
+
   function codeBlockToText(block) {
     if (!block) return "";
     if (block.type === "text" && typeof block.text === "string") {
       return block.text;
     }
     if (block.type === "tool_use") {
-      return "[tool use: " + (block.name || "unknown") + "]";
+      var argsSummary = condenseToolInput(block.input);
+      return "[tool: " + (block.name || "unknown") + "]" + (argsSummary ? " " + argsSummary : "");
     }
     if (block.type === "tool_result") {
-      return "[tool result]";
+      var prefix = block.is_error ? "[tool result — error]" : "[tool result]";
+      var resultSummary = condenseToolResultContent(block.content);
+      return resultSummary ? prefix + " " + resultSummary : prefix;
     }
     return "";
   }
