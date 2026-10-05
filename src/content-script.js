@@ -89,11 +89,13 @@
     if (!btn || btn.getAttribute("data-site") !== "chatgpt") return;
 
     var main = document.querySelector("main");
-    if (main) {
-      var mainRect = main.getBoundingClientRect();
-      btn.style.left = (mainRect.left + 12) + "px";
-      btn.style.top = (mainRect.top + 12) + "px";
-    }
+    var header = document.querySelector('header[data-app-shell-titlebar]');
+
+    var left = main ? main.getBoundingClientRect().left + 12 : 60;
+    var top = header ? header.getBoundingClientRect().bottom + 8 : 12;
+
+    btn.style.left = left + "px";
+    btn.style.top = top + "px";
 
     var n8nRow = document.getElementById(N8N_ROW_ID);
     if (n8nRow) {
