@@ -284,7 +284,7 @@
         showToast("Sent to n8n.");
       } else {
         var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
-        showToast("Send to n8n failed: " + errMsg);
+        showToast("Send to n8n failed: " + errMsg, 8000);
       }
     });
   }
@@ -444,7 +444,7 @@
     });
   }
 
-  function showToast(message) {
+  function showToast(message, duration) {
     var existing = document.getElementById(TOAST_ID);
     if (existing) existing.remove();
 
@@ -462,7 +462,7 @@
       setTimeout(function () {
         toast.remove();
       }, 300);
-    }, 3000);
+    }, duration || 3000);
   }
 
   if (document.readyState === "loading") {
