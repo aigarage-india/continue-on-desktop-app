@@ -8,6 +8,7 @@
     "https://claude.ai/*",
     "https://chatgpt.com/*"
   ],
+  "optional_permissions": ["*://*/*"],
   "content_scripts": [
     {
       "matches": ["https://claude.ai/*"],

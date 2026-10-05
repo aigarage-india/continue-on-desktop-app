@@ -26,6 +26,38 @@
 
     <div id="save-status" class="save-status"></div>
 
+    <div class="section-divider"></div>
+
+    <h2>Send to n8n</h2>
+    <p class="subtitle">Send a chat or Claude Project to your own n8n webhook for processing — nothing is ever sent anywhere else.</p>
+
+    <div class="toggle-row">
+      <label for="toggle-n8n-export">
+        <span class="toggle-label">Enable "Send to n8n" button</span>
+      </label>
+      <input type="checkbox" id="toggle-n8n-export">
+    </div>
+
+    <label class="field-label" for="webhook-url">n8n webhook URL</label>
+    <div class="field-row">
+      <input type="url" id="webhook-url" placeholder="https://your-n8n.example.com/webhook/...">
+      <button id="save-webhook-btn" class="btn btn-secondary">Save</button>
+    </div>
+
+    <label class="field-label" for="export-format">Payload format</label>
+    <select id="export-format">
+      <option value="json">JSON</option>
+      <option value="markdown">Markdown</option>
+    </select>
+
+    <div class="field-row">
+      <button id="test-connection-btn" class="btn btn-secondary">Test connection</button>
+    </div>
+
+    <div id="webhook-status" class="webhook-status"></div>
+
+    <p class="warning-text">Conversation content will be sent to this URL whenever you click "Send to n8n" — make sure you trust this destination.</p>
+
     <div class="footer">
       Built by <a href="https://aigarage.in" target="_blank" class="footer-link">AI Garage</a>
     </div>

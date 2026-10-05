@@ -84,6 +84,109 @@ input[type="checkbox"] {
   opacity: 1;
 }
 
+.section-divider {
+  margin: 20px 0;
+  border-top: 1px solid #eee;
+}
+
+@media (prefers-color-scheme: dark) {
+  .section-divider {
+    border-top-color: #333;
+  }
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+
+input[type="url"],
+select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  input[type="url"],
+  select {
+    border-color: #444;
+    background: #2a2a2a;
+    color: #e5e5e5;
+  }
+}
+
+.btn {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #eee;
+  color: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-secondary {
+    background: #333;
+    color: #e5e5e5;
+  }
+}
+
+.webhook-status {
+  margin-top: 10px;
+  font-size: 12px;
+  min-height: 16px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.webhook-status.visible {
+  opacity: 1;
+}
+
+.webhook-status.success {
+  color: #22c55e;
+}
+
+.webhook-status.error {
+  color: #ef4444;
+}
+
+.webhook-status.pending {
+  color: #999;
+}
+
+.warning-text {
+  margin-top: 14px;
+  font-size: 11px;
+  color: #999;
+  line-height: 1.5;
+}
+
 .footer {
   margin-top: 20px;
   padding-top: 12px;
