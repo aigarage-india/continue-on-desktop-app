@@ -1,18 +1,18 @@
 # Continue on Desktop App by AI Garage
 
-Chrome extension that adds a **Desktop** button on [claude.ai](https://claude.ai) and [chatgpt.com](https://chatgpt.com), letting you open the current conversation in the native desktop app with one click. Optionally, it can also send a chat or Claude Project to your own [n8n](https://n8n.io) webhook for further processing (saving to a database, summarizing, cleaning up, etc.) — see [Send to n8n](#send-to-n8n) below.
+Chrome extension that adds a small control to [claude.ai](https://claude.ai) and [chatgpt.com](https://chatgpt.com) for opening the current conversation in the native desktop app with one click, or sending it to your own [n8n](https://n8n.io) webhook for further processing (saving to a database, summarizing, cleaning up, etc.) — see [Send to n8n](#send-to-n8n) below.
 
 ## Features
 
 - One-click switch from browser to desktop app mid-conversation
-- Works on both Claude and ChatGPT
-- Anchored button in Claude's chat header; floating button on ChatGPT
-- SPA-aware — button updates automatically when you switch conversations
+- Works on Claude (chats, Projects, Code sessions, Cowork sessions) and ChatGPT (chats, Projects)
+- Anchored control in Claude's/ChatGPT Project's header; floating control next to the input box on ChatGPT chats
+- SPA-aware — control updates automatically when you switch conversations
 - Clipboard fallback if the desktop app isn't installed
 - Per-site enable/disable toggles
 - Toolbar popup with quick open + copy link
 - Dark mode support
-- Optional: send a Claude/ChatGPT chat, or a Claude Project's docs, to your own n8n webhook as JSON or Markdown
+- Optional: send a Claude/ChatGPT chat, a Claude Project's docs, a ChatGPT Project's instructions/files, or a Claude Code/Cowork session's transcript, to your own n8n webhook as JSON or Markdown
 
 ## Install (developer mode)
 
@@ -25,7 +25,7 @@ Chrome extension that adds a **Desktop** button on [claude.ai](https://claude.ai
 ## Usage
 
 1. Open a conversation on claude.ai or chatgpt.com
-2. Click the **Desktop** button in the chat header (Claude) or top-left (ChatGPT)
+2. In the injected control, pick **Open in** from the first dropdown, then **Desktop** from the second
 3. The conversation opens in the desktop app
 
 Alternatively, click the extension icon in the toolbar to see the deep link, open in the app, or copy the link.
@@ -40,7 +40,7 @@ Alternatively, click the extension icon in the toolbar to see the deep link, ope
 
 ## Settings
 
-Right-click the extension icon → **Options** (opens as a full tab) to enable or disable the Desktop button per site, and to configure n8n export.
+Right-click the extension icon → **Options** (opens as a full tab) to enable or disable the control per site, and to configure n8n export.
 
 ## Send to n8n
 
@@ -50,10 +50,12 @@ Disabled by default. To turn it on:
 2. Enter your n8n webhook URL and click **Save** — Chrome will prompt you to grant that specific URL's origin permission (nothing broader).
 3. Toggle on "Enable 'Send to n8n' button".
 
-A **Send to n8n** button then appears next to the Desktop button on claude.ai and chatgpt.com, with a JSON/Markdown format picker next to it. Clicking it:
+The injected control then offers **Send to** as an action. Picking it reveals a destination dropdown (currently just **n8n**, with more destinations planned), then a format dropdown (**JSON** / **MD**) — selecting a format fires the send immediately:
 
 - On a Claude or ChatGPT chat: extracts the full conversation (messages, roles, timestamps) and sends it as either a structured JSON object or a flattened Markdown document.
 - On a Claude Project: sends the project's docs/knowledge files only (not every chat inside the project).
+- On a ChatGPT Project: sends the project's instructions and any attached files.
+- On a Claude Code or Cowork session: sends the session transcript (same message/role shape as a chat).
 
 Extraction reads claude.ai's and chatgpt.com's own same-origin API endpoints (the same ones their web apps use), with your existing session cookies — nothing is fetched from, or sent to, any third-party or AI Garage server. The only network destination is the webhook URL you configure. These endpoints are not publicly documented and can change without notice; if extraction ever breaks, that's the likely cause.
 
@@ -70,9 +72,9 @@ Extraction reads claude.ai's and chatgpt.com's own same-origin API endpoints (th
 
 ## Privacy
 
-**Desktop button:** collects and transmits nothing. It reads only the current tab's URL to generate a desktop app deep link. Preferences (per-site toggles) are stored locally in Chrome's `chrome.storage.sync` and never leave your browser.
+**Open in Desktop:** collects and transmits nothing. It reads only the current tab's URL to generate a desktop app deep link. Preferences (per-site toggles) are stored locally in Chrome's `chrome.storage.sync` and never leave your browser.
 
-**Send to n8n (opt-in, off by default):** when you enable it and click "Send to n8n", the full content of the current chat or Claude Project — including message text — is sent to the webhook URL you configured, in the format you chose (JSON or Markdown). This only happens on an explicit click; nothing is sent automatically or in the background. No conversation content is ever stored by the extension itself — it's read, sent once, and discarded. Make sure you trust whatever is on the other end of the webhook URL you enter, since that destination receives your conversation content in full.
+**Send to n8n (opt-in, off by default):** when you enable it and complete the Send to → n8n → format dropdown chain, the full content of the current chat, project, or session — including message text — is sent to the webhook URL you configured, in the format you chose (JSON or Markdown). This only happens on an explicit selection; nothing is sent automatically or in the background. No conversation content is ever stored by the extension itself — it's read, sent once, and discarded. Make sure you trust whatever is on the other end of the webhook URL you enter, since that destination receives your conversation content in full.
 
 **Webhook URL handling:** since a webhook URL often works like a de-facto secret (anyone with it can trigger your n8n workflow), it's stored in `chrome.storage.local` — device-only, never synced via your Google account like the other preferences. The Options page masks it like a password field (with a show/hide toggle), and you'll see a warning if you enter a plain `http://` URL (other than localhost), since that would send conversation content over the network unencrypted.
 
