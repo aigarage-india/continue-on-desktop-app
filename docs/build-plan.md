@@ -359,16 +359,24 @@ tested against a live page in a real browser.
 more history than that only exports its most recent 200. Pagination is a
 follow-up if this turns out to matter.
 
-**8a remaining before sign-off (needs you, live in a browser):**
-- [ ] Button: confirm `button[aria-label^="More options for"]:not([data-row-action])`
-      (already wired, matched real DOM in the earlier capture) actually
-      anchors correctly end-to-end
-- [ ] Click "Send to n8n" on a real Code session, confirm payload (JSON +
-      Markdown) looks right and isn't missing/duplicating turns
+**8a — live-tested, working.** Button anchored correctly, send succeeded
+end-to-end to a real webhook, payload has correct chronological order,
+correct human/assistant role mapping, and readable (if terse) tool_use/
+tool_result placeholders. Two real bugs found and fixed during testing:
+- Both `/v1/code/sessions/{id}` endpoints reject requests missing an
+  `anthropic-version: 2023-06-01` header (the `/api/organizations/...`
+  endpoints never needed one) — added, scoped to just these two calls.
+- Session title came back empty — the metadata response can be wrapped
+  under a `response_shape` key rather than flat; now falls back to that.
+
+**Still open for 8a:**
 - [ ] Spot-check a session with a large tool output (long command run, big
       file read) doesn't silently break the send
 - [ ] Confirm the 200-event-limit caveat is acceptable, or decide pagination
       is needed sooner
+- [ ] Consider (not yet decided — ask if it matters) whether tool_use/
+      tool_result placeholders are too terse for real use, vs. showing tool
+      name + condensed args/result
 
 **8b (Claude Cowork) — still fully open.** No live data captured yet for
 Cowork. Needs the same two-step investigation (API shape + header DOM) as
