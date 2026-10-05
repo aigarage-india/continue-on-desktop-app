@@ -176,7 +176,9 @@ var ClaudeExtractor = (function () {
       fetchJson(base, CODE_API_HEADERS),
       fetchJson(base + "/events?limit=200&sort_order=desc", CODE_API_HEADERS),
     ]).then(function (results) {
-      var session = results[0];
+      // Observed in the wild wrapped under a top-level "response_shape" key
+      // on at least one response; fall back to the flat shape too.
+      var session = results[0].response_shape || results[0];
       var rawEvents = (results[1] && results[1].data) || [];
 
       var sortedEvents = rawEvents.slice().sort(function (a, b) {
