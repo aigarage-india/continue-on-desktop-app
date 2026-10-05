@@ -100,8 +100,8 @@
     var n8nRow = document.getElementById(N8N_ROW_ID);
     if (n8nRow) {
       var btnRect = btn.getBoundingClientRect();
-      n8nRow.style.left = (btnRect.right + 8) + "px";
-      n8nRow.style.top = btn.style.top;
+      n8nRow.style.left = btnRect.left + "px";
+      n8nRow.style.top = (btnRect.bottom + 8) + "px";
     }
   }
 
@@ -295,8 +295,8 @@
       var row = document.createElement("div");
       row.id = N8N_ROW_ID;
       row.className = "cod-n8n-floating-row";
-      row.appendChild(select);
       row.appendChild(btn);
+      row.appendChild(select);
       document.body.appendChild(row);
 
       if (info.site === "chatgpt") {
