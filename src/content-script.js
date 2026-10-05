@@ -117,14 +117,21 @@
   }
 
   function updateChatGPTButtonPosition() {
-    var btn = document.getElementById(BUTTON_ID);
-    if (!btn || btn.getAttribute("data-site") !== "chatgpt") return;
+    var info = ContinueOnDesktop.getSiteInfo(window.location.href);
+    if (info.site !== "chatgpt") return;
 
+    // The Desktop button only exists when there's a known deep link (no
+    // deep link on project pages, Cowork/Code-equivalents, etc.) — so this
+    // must position whichever of btn / n8n row actually exists, not bail
+    // out just because the Desktop button is missing.
+    var btn = document.getElementById(BUTTON_ID);
     var n8nRow = document.getElementById(N8N_ROW_ID);
+    if (!btn && !n8nRow) return;
+
     var gap = 8;
-    var btnHeight = btn.offsetHeight || 32;
+    var btnHeight = btn ? (btn.offsetHeight || 32) : 0;
     var rowHeight = n8nRow ? (n8nRow.offsetHeight || 32) : 0;
-    var stackHeight = btnHeight + (n8nRow ? gap + rowHeight : 0);
+    var stackHeight = btnHeight + (btn && n8nRow ? gap : 0) + rowHeight;
 
     var left, top;
     var composerRect = findChatGPTComposerRect();
@@ -145,12 +152,15 @@
       top = window.innerHeight - stackHeight - 24;
     }
 
-    btn.style.left = left + "px";
-    btn.style.top = top + "px";
-
+    var cursorTop = top;
+    if (btn) {
+      btn.style.left = left + "px";
+      btn.style.top = cursorTop + "px";
+      cursorTop += btnHeight + gap;
+    }
     if (n8nRow) {
       n8nRow.style.left = left + "px";
-      n8nRow.style.top = (top + btnHeight + gap) + "px";
+      n8nRow.style.top = cursorTop + "px";
     }
   }
 
