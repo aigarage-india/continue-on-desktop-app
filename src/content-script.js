@@ -59,9 +59,9 @@
       if (window.location.href !== lastUrl) {
         lastUrl = window.location.href;
         handleUrlChange();
-      } else if (!document.getElementById(BUTTON_ID)) {
+      } else if (!document.getElementById(BUTTON_ID) && !document.getElementById(N8N_BUTTON_ID)) {
         var info = ContinueOnDesktop.getSiteInfo(window.location.href);
-        if (info.deepLink) {
+        if (info.conversationId) {
           tryAnchoredInjection(info);
         }
       }
@@ -71,16 +71,20 @@
 
   function handleUrlChange() {
     var info = ContinueOnDesktop.getSiteInfo(window.location.href);
-    var existing = document.getElementById(BUTTON_ID);
+    var existingBtn = document.getElementById(BUTTON_ID);
 
-    if (!info.deepLink) {
-      if (existing) existing.remove();
+    if (!info.conversationId) {
+      if (existingBtn) existingBtn.remove();
       removeN8nElements();
       return;
     }
 
-    if (existing) {
-      existing.setAttribute("data-deep-link", info.deepLink);
+    if (existingBtn) {
+      existingBtn.setAttribute("data-deep-link", info.deepLink || "");
+      return;
+    }
+
+    if (document.getElementById(N8N_BUTTON_ID)) {
       return;
     }
 
@@ -135,7 +139,7 @@
 
     setTimeout(function () {
       observer.disconnect();
-      if (!document.getElementById(BUTTON_ID)) {
+      if (!document.getElementById(BUTTON_ID) && !document.getElementById(N8N_BUTTON_ID)) {
         injectButton(info, null, true, null);
       }
     }, HEADER_WAIT_MS);
@@ -186,38 +190,42 @@
   }
 
   function injectButton(info, container, floating, reference) {
-    if (document.getElementById(BUTTON_ID)) return;
+    var btn = null;
 
-    var btn = createButtonElement(info);
-    btn.classList.add("cod-action-btn");
+    if (info.deepLink && !document.getElementById(BUTTON_ID)) {
+      btn = createButtonElement(info);
+      btn.classList.add("cod-action-btn");
 
-    if (floating) {
-      btn.classList.add("cod-floating");
-      document.body.appendChild(btn);
-    } else {
-      btn.classList.add("cod-anchored");
-      if (reference && reference.nextSibling) {
-        container.insertBefore(btn, reference.nextSibling);
+      if (floating) {
+        btn.classList.add("cod-floating");
+        document.body.appendChild(btn);
       } else {
-        container.appendChild(btn);
+        btn.classList.add("cod-anchored");
+        if (reference && reference.nextSibling) {
+          container.insertBefore(btn, reference.nextSibling);
+        } else {
+          container.appendChild(btn);
+        }
       }
     }
 
     if (n8nReady) {
-      injectN8nButton(info, container, floating, btn);
+      injectN8nButton(info, container, floating, btn || reference);
     }
   }
 
-  function isClaudeProjectUrl(url) {
-    return /^https:\/\/claude\.ai\/project\//.test(url);
-  }
+  var N8N_LABELS = {
+    project: "project",
+    code: "Claude Code session",
+    cowork: "Cowork session",
+  };
 
   function createN8nButtonElement(info) {
     var btn = document.createElement("button");
     btn.id = N8N_BUTTON_ID;
     btn.setAttribute("data-site", info.site);
-    var projectPage = info.site === "claude" && isClaudeProjectUrl(window.location.href);
-    btn.title = "Send this " + (projectPage ? "project" : "chat") + " to your n8n webhook";
+    var label = N8N_LABELS[info.type] || "chat";
+    btn.title = "Send this " + label + " to your n8n webhook";
 
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "16");
@@ -305,7 +313,7 @@
     } else {
       select.classList.add("cod-anchored-select");
       btn.classList.add("cod-anchored");
-      if (afterElement.nextSibling) {
+      if (afterElement && afterElement.nextSibling) {
         container.insertBefore(btn, afterElement.nextSibling);
         container.insertBefore(select, btn.nextSibling);
       } else {
@@ -354,10 +362,15 @@
 
     var extractPromise;
     if (info.site === "claude") {
-      var projectPage = isClaudeProjectUrl(window.location.href);
-      extractPromise = projectPage
-        ? ClaudeExtractor.extractProject(info.conversationId)
-        : ClaudeExtractor.extractChat(info.conversationId);
+      if (info.type === "project") {
+        extractPromise = ClaudeExtractor.extractProject(info.conversationId);
+      } else if (info.type === "code") {
+        extractPromise = ClaudeExtractor.extractCodeSession(info.conversationId);
+      } else if (info.type === "cowork") {
+        extractPromise = ClaudeExtractor.extractCoworkSession(info.conversationId);
+      } else {
+        extractPromise = ClaudeExtractor.extractChat(info.conversationId);
+      }
     } else if (info.site === "chatgpt") {
       extractPromise = ChatGPTExtractor.extractChat(info.conversationId);
     } else {

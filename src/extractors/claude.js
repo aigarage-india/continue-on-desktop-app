@@ -142,8 +142,30 @@ var ClaudeExtractor = (function () {
     });
   }
 
+  function extractCodeSession(sessionId) {
+    return Promise.reject(
+      new Error(
+        "Claude Code session export isn't implemented yet (Phase 8a) — " +
+          "the same-origin API this session's transcript comes from hasn't " +
+          "been confirmed yet."
+      )
+    );
+  }
+
+  function extractCoworkSession(sessionId) {
+    return Promise.reject(
+      new Error(
+        "Claude Cowork session export isn't implemented yet (Phase 8b) — " +
+          "the same-origin API this session's transcript comes from hasn't " +
+          "been confirmed yet."
+      )
+    );
+  }
+
   return {
     extractChat: extractChat,
     extractProject: extractProject,
+    extractCodeSession: extractCodeSession,
+    extractCoworkSession: extractCoworkSession,
   };
 })();
