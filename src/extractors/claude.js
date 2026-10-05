@@ -222,7 +222,10 @@ var ClaudeExtractor = (function () {
     return "";
   }
 
-  function extractCodeSession(sessionId) {
+  // Code sessions (session_...) and Cowork sessions (cse_...) are both
+  // backed by this same /v1/code/sessions/{id} API — confirmed live for
+  // Cowork too (same response_shape wrapper, same flat `title` field).
+  function extractCodeLikeSession(sessionId, type) {
     var base = "/v1/code/sessions/" + sessionId;
     return Promise.all([
       fetchJson(base, CODE_API_HEADERS),
@@ -253,11 +256,12 @@ var ClaudeExtractor = (function () {
         });
       });
 
-      var title = session.title || "Untitled Code session";
+      var untitledLabel = type === "cowork" ? "Untitled Cowork session" : "Untitled Code session";
+      var title = session.title || untitledLabel;
 
       return {
         source: "claude",
-        type: "code",
+        type: type,
         id: sessionId,
         url: window.location.href,
         title: title,
@@ -268,14 +272,12 @@ var ClaudeExtractor = (function () {
     });
   }
 
+  function extractCodeSession(sessionId) {
+    return extractCodeLikeSession(sessionId, "code");
+  }
+
   function extractCoworkSession(sessionId) {
-    return Promise.reject(
-      new Error(
-        "Claude Cowork session export isn't implemented yet (Phase 8b) — " +
-          "the same-origin API this session's transcript comes from hasn't " +
-          "been confirmed yet."
-      )
-    );
+    return extractCodeLikeSession(sessionId, "cowork");
   }
 
   return {

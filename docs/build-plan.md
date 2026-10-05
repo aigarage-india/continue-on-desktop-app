@@ -381,14 +381,18 @@ mapping. Three real issues found and fixed during testing:
 - [ ] Confirm the 200-event-limit caveat is acceptable, or decide pagination
       is needed sooner
 
-**8b (Claude Cowork) — still fully open.** No live data captured yet for
-Cowork. Needs the same two-step investigation (API shape + header DOM) as
-8a, on a real Cowork session, before any extraction code gets written —
-don't assume it shares Code's endpoint shape.
-- [ ] No console errors
+**8b (Claude Cowork) — implemented, not yet live-tested.** Live capture of
+a real Cowork session (`cse_...` id) showed it hits the exact same
+`/v1/code/sessions/{id}` + `/events` API as Code sessions — same
+`response_shape` wrapper, same flat `title` field, same event log shape —
+and the existing header selector already anchors the n8n button there
+with no changes. So `extractCoworkSession()` now reuses `extractCodeSession()`'s
+logic (refactored into shared `extractCodeLikeSession(sessionId, type)`)
+instead of needing separate investigation/implementation.
+- [ ] Click "Send to n8n" on a real Cowork session and confirm the payload
+      looks right (title, message order, role mapping, tool rendering)
 
-**Sign-off gate:** 8a (Code) signed off and tested before starting 8b
-(Cowork) — don't assume the same API shape carries over between the two.
+**Sign-off gate:** 8b live-tested and confirmed before calling Phase 8 done.
 
 ---
 
