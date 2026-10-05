@@ -106,6 +106,10 @@ html.dark {
   margin-right: 0;
 }
 
+#cod-continue-btn.cod-anchored:has(+ #cod-n8n-btn) {
+  margin-right: 4px;
+}
+
 .cod-action-btn.cod-floating {
   position: fixed;
   bottom: 24px;
