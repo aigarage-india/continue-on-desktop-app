@@ -5,7 +5,11 @@ function buildBody(payload, format) {
   if (format === "markdown") {
     return {
       body: payload.markdown || "",
-      contentType: "text/markdown",
+      // n8n's Webhook node only auto-parses a fixed set of content types
+      // (json, text/plain, form-data, xml...) — an unrecognized one like
+      // text/markdown falls back to treating the body as binary data.
+      // Markdown is plain text, so text/plain parses it correctly.
+      contentType: "text/plain",
     };
   }
   return {
