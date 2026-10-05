@@ -19,6 +19,7 @@
 
   var LANDMARK_SELECTORS = {
     claude: [
+      'button[aria-label^="More options for"]',
       'button[aria-label*="rename chat"]',
       'button[aria-label*="rename conversation"]',
     ],
