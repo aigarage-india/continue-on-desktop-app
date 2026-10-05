@@ -494,21 +494,23 @@ button appears there today. Goal: add project-level export analogous to
 Claude's existing project export (`extractProject()` in `claude.js`) —
 send the project's files/instructions, not every chat inside it.
 
-**Status: API confirmed, implemented — not yet live-tested.** Live capture
-confirmed `GET /backend-api/gizmos/g-p-{id}?include_file_limits=true`
-(bearer token, same as `extractChat()`) returns `{ gizmo: { display: { name
-}, instructions, ... }, files: [...] }`. URL pattern added to `utils.js`
+**Status: live-tested, working.** Live capture confirmed
+`GET /backend-api/gizmos/g-p-{id}?include_file_limits=true` (bearer
+token, same as `extractChat()`) returns `{ gizmo: { display: { name },
+instructions, ... }, files: [...] }`. URL pattern added to `utils.js`
 (`chatgpt.com/g/g-p-{id}/project` → type `project`, no deep link — no
 confirmed desktop protocol handler for the project page itself).
 `extractProject()` added to `chatgpt.js`: exports the project's
 instructions plus any files, mirroring Claude's `docs[]`/markdown shape.
 
-**Known gap:** the captured response had an empty `files: []` array (no
-files uploaded to that project), so the actual shape of a populated file
-entry — in particular whether it carries inline content or only
-metadata/a download URL — is unconfirmed. Current code tries `f.content`
-/ `f.text` and falls back to a placeholder string if neither is present.
-Needs a live test against a project that actually has files attached.
+Tested against both an empty project (no instructions, no files — correctly
+produced `docs: []`) and a project with a real file attached
+(`LumaBoost.pdf`). The populated-file case confirmed the gizmo API returns
+only file metadata (`name`, `created_at`), no inline content or download
+URL — so the `f.content`/`f.text` fallback is necessary, not defensive
+overkill, and is working as intended. Getting actual file content would
+need a separate (currently unidentified) endpoint — out of scope unless
+asked for.
 
 Button position was iterated live on a real project page (Ritual Labs):
 floating-next-to-composer looked wrong for this page type, so project
@@ -516,11 +518,7 @@ pages now use anchored injection into the header row next to Share/"..."
 (`button[aria-label="Project actions"]` as landmark) — same approach as
 Claude, instead of floating like regular ChatGPT chats.
 
-**Still open:**
-- [ ] Live-test against a project with files attached — confirm file
-      content comes through (or fix the fallback if the API shape differs)
-- [ ] Click "Send to n8n" on the project page and confirm the payload
-      (name, instructions) looks right
+**Sign-off: Phase 11 done.**
 
 **Sign-off gate:** live-tested on a real project page before calling this
 phase done.
