@@ -218,15 +218,27 @@
     select.disabled = true;
   }
 
-  function resetControl(wrap) {
-    var selects = wrap.querySelectorAll("select");
-    selects[0].value = "";
-    resetDependentSelect(selects[1], "Destination");
-    resetDependentSelect(selects[2], "Format");
+  function populateDestOptions(destSelect, action) {
+    destSelect.innerHTML = "";
+    appendPlaceholderOption(destSelect, "Destination");
+    if (action === "open") {
+      appendOption(destSelect, "desktop", "Desktop");
+    } else if (action === "send") {
+      appendOption(destSelect, "n8n", "n8n");
+      appendDisabledOption(destSelect, "More destinations soon");
+    }
   }
 
-  // Only ever called to enter the busy state — leaving it is always
-  // followed by resetControl(), which sets the right disabled flags itself.
+  function populateFormatOptions(formatSelect) {
+    formatSelect.innerHTML = "";
+    appendPlaceholderOption(formatSelect, "Format");
+    appendOption(formatSelect, "json", "JSON");
+    appendOption(formatSelect, "markdown", "MD");
+    appendDisabledOption(formatSelect, "More formats soon");
+  }
+
+  // Only ever called to enter the busy state — each caller re-enables
+  // exactly the selects it leaves usable once the action completes.
   function setControlBusy(wrap) {
     wrap.classList.add("cod-loading");
     var selects = wrap.querySelectorAll("select");
@@ -235,18 +247,24 @@
     }
   }
 
-  function handleOpenInDesktop(info, wrap) {
+  // Action + destination stay at their picked values after firing (so
+  // repeating the same send/open needs one fewer click) — only the
+  // terminal dropdown that actually fired resets to its placeholder,
+  // since re-picking an unchanged <select> value fires no change event.
+  function handleOpenInDesktop(info, wrap, destSelect) {
     setControlBusy(wrap);
     window.location.href = info.deepLink;
 
     setTimeout(function () {
       wrap.classList.remove("cod-loading");
-      resetControl(wrap);
+      wrap.querySelectorAll("select")[0].disabled = false;
+      populateDestOptions(destSelect, "open");
+      destSelect.disabled = false;
       copyToClipboard(info.deepLink);
     }, PROTOCOL_TIMEOUT_MS);
   }
 
-  function handleSendToN8n(wrap) {
+  function handleSendToN8n(wrap, formatSelect) {
     if (n8nSending) return;
     n8nSending = true;
     setControlBusy(wrap);
@@ -254,7 +272,11 @@
     extractAndSend(function (result) {
       n8nSending = false;
       wrap.classList.remove("cod-loading");
-      resetControl(wrap);
+      var selects = wrap.querySelectorAll("select");
+      selects[0].disabled = false;
+      selects[1].disabled = false;
+      populateFormatOptions(formatSelect);
+      formatSelect.disabled = false;
 
       if (result && result.ok) {
         showToast("Sent to n8n.");
@@ -299,15 +321,7 @@
     actionSelect.addEventListener("change", function () {
       var action = actionSelect.value;
       resetDependentSelect(formatSelect, "Format");
-
-      destSelect.innerHTML = "";
-      appendPlaceholderOption(destSelect, "Destination");
-      if (action === "open") {
-        appendOption(destSelect, "desktop", "Desktop");
-      } else if (action === "send") {
-        appendOption(destSelect, "n8n", "n8n");
-        appendDisabledOption(destSelect, "More destinations soon");
-      }
+      populateDestOptions(destSelect, action);
       destSelect.disabled = !action;
     });
 
@@ -318,16 +332,12 @@
       if (!destination) return;
 
       if (action === "open" && destination === "desktop") {
-        handleOpenInDesktop(info, wrap);
+        handleOpenInDesktop(info, wrap, destSelect);
         return;
       }
 
       if (action === "send" && destination === "n8n") {
-        formatSelect.innerHTML = "";
-        appendPlaceholderOption(formatSelect, "Format");
-        appendOption(formatSelect, "json", "JSON");
-        appendOption(formatSelect, "markdown", "MD");
-        appendDisabledOption(formatSelect, "More formats soon");
+        populateFormatOptions(formatSelect);
         formatSelect.disabled = false;
       }
     });
@@ -337,7 +347,7 @@
       var format = formatSelect.value;
       if (!format) return;
       chrome.storage.sync.set({ n8nExportFormat: format });
-      handleSendToN8n(wrap);
+      handleSendToN8n(wrap, formatSelect);
     });
 
     wrap.appendChild(actionSelect);
