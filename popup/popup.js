@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var n8nActions = document.getElementById("n8n-actions");
   var sendN8nBtn = document.getElementById("send-n8n-btn");
   var n8nFormatSelect = document.getElementById("n8n-format-select");
+  var sendN8nLabel = document.getElementById("send-n8n-label");
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (!tabs || !tabs[0]) {
@@ -52,6 +53,7 @@ document.addEventListener("DOMContentLoaded", function () {
   sendN8nBtn.addEventListener("click", function () {
     if (!currentTabId) return;
     sendN8nBtn.disabled = true;
+    sendN8nBtn.classList.remove("btn-success");
     showStatus("Sending to n8n...");
 
     chrome.tabs.sendMessage(currentTabId, { type: "POPUP_SEND_TO_N8N" }, function (result) {
@@ -61,7 +63,13 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
       if (result && result.ok) {
+        sendN8nBtn.classList.add("btn-success");
+        sendN8nLabel.textContent = "✓ Sent";
         showStatus("Sent to n8n.");
+        setTimeout(function () {
+          sendN8nBtn.classList.remove("btn-success");
+          sendN8nLabel.textContent = "Send to n8n";
+        }, 1800);
       } else {
         var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
         showStatus("Failed: " + errMsg);

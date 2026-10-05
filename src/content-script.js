@@ -218,10 +218,11 @@
     svg.setAttribute("viewBox", "0 0 16 16");
     svg.setAttribute("fill", "none");
     svg.innerHTML =
-      '<path d="M8 2v9M8 2L4.5 5.5M8 2l3.5 3.5" ' +
-      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M2.5 11v1.5A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V11" ' +
-      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+      '<circle cx="3.5" cy="4" r="1.6" fill="currentColor"/>' +
+      '<circle cx="12.5" cy="4" r="1.6" fill="currentColor"/>' +
+      '<circle cx="8" cy="12.5" r="1.6" fill="currentColor"/>' +
+      '<path d="M4.9 5.2L7.3 11M11.1 5.2L8.7 11" ' +
+      'stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>';
 
     var span = document.createElement("span");
     span.textContent = "Send to n8n";
@@ -315,6 +316,7 @@
     if (n8nSending) return;
     n8nSending = true;
 
+    btn.classList.remove("cod-success");
     btn.classList.add("cod-loading");
     var span = btn.querySelector("span");
     var originalText = span ? span.textContent : "";
@@ -323,11 +325,17 @@
     extractAndSend(function (result) {
       n8nSending = false;
       btn.classList.remove("cod-loading");
-      if (span) span.textContent = originalText;
 
       if (result && result.ok) {
+        btn.classList.add("cod-success");
+        if (span) span.textContent = "✓ Sent";
         showToast("Sent to n8n.");
+        setTimeout(function () {
+          btn.classList.remove("cod-success");
+          if (span) span.textContent = originalText;
+        }, 1800);
       } else {
+        if (span) span.textContent = originalText;
         var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
         showToast("Send to n8n failed: " + errMsg);
       }

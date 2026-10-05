@@ -82,6 +82,17 @@ body {
   margin-top: 8px;
 }
 
+#send-n8n-btn {
+  flex: 1;
+  border: 1px solid #ff6d5a;
+}
+
+#send-n8n-btn.btn-success {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+}
+
 .format-select {
   font-family: inherit;
   font-size: 13px;

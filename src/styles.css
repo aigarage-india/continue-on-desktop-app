@@ -6,6 +6,9 @@
   --cod-shadow: rgba(0, 0, 0, 0.1);
   --cod-toast-bg: #1a1a1a;
   --cod-toast-text: #ffffff;
+  --cod-n8n-accent: #ff6d5a;
+  --cod-n8n-accent-bg: rgba(255, 109, 90, 0.1);
+  --cod-success: #16a34a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -67,6 +70,24 @@ html.dark {
 .cod-action-btn.cod-loading {
   opacity: 0.7;
   pointer-events: none;
+}
+
+#cod-n8n-btn {
+  border-color: var(--cod-n8n-accent);
+}
+
+#cod-n8n-btn:hover {
+  background: var(--cod-n8n-accent-bg);
+}
+
+.cod-action-btn.cod-success {
+  background: var(--cod-success);
+  border-color: var(--cod-success);
+  color: #ffffff;
+}
+
+.cod-action-btn.cod-success:hover {
+  background: var(--cod-success);
 }
 
 .cod-action-btn.cod-anchored {
