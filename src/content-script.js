@@ -1,10 +1,7 @@
 (function () {
   "use strict";
 
-  var BUTTON_ID = "cod-continue-btn";
-  var N8N_BUTTON_ID = "cod-n8n-btn";
-  var N8N_FORMAT_ID = "cod-n8n-format";
-  var N8N_ROW_ID = "cod-n8n-row";
+  var CONTROL_ID = "cod-control";
   var TOAST_ID = "cod-toast";
   var POLL_INTERVAL = 500;
   var HEADER_WAIT_MS = 2000;
@@ -15,7 +12,6 @@
   var enabled = true;
   var n8nReady = false;
   var n8nSending = false;
-  var n8nFormat = "json";
 
   var LANDMARK_SELECTORS = {
     claude: [
@@ -38,7 +34,7 @@
     // Scope to <main> and require a real on-screen size — an unscoped
     // query can match a hidden/zero-size element elsewhere in the page
     // (e.g. a sidebar search or rename field), which would otherwise park
-    // the button at that element's (often top-left) position.
+    // the control at that element's (often top-left) position.
     var scope = document.querySelector("main") || document;
     for (var i = 0; i < CHATGPT_INPUT_SELECTORS.length; i++) {
       var el = scope.querySelector(CHATGPT_INPUT_SELECTORS[i]);
@@ -63,11 +59,9 @@
         enableClaude: true,
         enableChatGPT: true,
         n8nExportEnabled: false,
-        n8nExportFormat: "json",
       },
       function (syncSettings) {
         enabled = syncSettings[storageKey];
-        n8nFormat = syncSettings.n8nExportFormat;
 
         chrome.storage.local.get({ n8nWebhookUrl: "" }, function (localSettings) {
           n8nReady = !!(syncSettings.n8nExportEnabled && localSettings.n8nWebhookUrl);
@@ -87,84 +81,54 @@
       if (window.location.href !== lastUrl) {
         lastUrl = window.location.href;
         handleUrlChange();
-      } else if (!document.getElementById(BUTTON_ID) && !document.getElementById(N8N_BUTTON_ID)) {
+      } else if (!document.getElementById(CONTROL_ID)) {
         var info = ContinueOnDesktop.getSiteInfo(window.location.href);
         if (info.conversationId) {
           tryAnchoredInjection(info);
         }
       }
-      updateChatGPTButtonPosition();
+      updateChatGPTControlPosition();
     }, POLL_INTERVAL);
   }
 
   function handleUrlChange() {
     var info = ContinueOnDesktop.getSiteInfo(window.location.href);
-    var existingBtn = document.getElementById(BUTTON_ID);
+    var existing = document.getElementById(CONTROL_ID);
 
-    if (!info.conversationId) {
-      if (existingBtn) existingBtn.remove();
-      removeN8nElements();
-      return;
-    }
+    if (existing) existing.remove();
 
-    if (existingBtn) {
-      existingBtn.setAttribute("data-deep-link", info.deepLink || "");
-      return;
-    }
-
-    if (document.getElementById(N8N_BUTTON_ID)) {
-      return;
-    }
+    if (!info.conversationId) return;
 
     tryAnchoredInjection(info);
   }
 
-  function updateChatGPTButtonPosition() {
+  function updateChatGPTControlPosition() {
     var info = ContinueOnDesktop.getSiteInfo(window.location.href);
     if (info.site !== "chatgpt") return;
 
-    // The Desktop button only exists when there's a known deep link (no
-    // deep link on project pages, Cowork/Code-equivalents, etc.) — so this
-    // must position whichever of btn / n8n row actually exists, not bail
-    // out just because the Desktop button is missing.
-    var btn = document.getElementById(BUTTON_ID);
-    var n8nRow = document.getElementById(N8N_ROW_ID);
-    if (!btn && !n8nRow) return;
-
-    var gap = 8;
-    var btnHeight = btn ? (btn.offsetHeight || 32) : 0;
-    var rowHeight = n8nRow ? (n8nRow.offsetHeight || 32) : 0;
-    var stackHeight = btnHeight + (btn && n8nRow ? gap : 0) + rowHeight;
+    var control = document.getElementById(CONTROL_ID);
+    if (!control || !control.classList.contains("cod-floating")) return;
 
     var left, top;
     var composerRect = findChatGPTComposerRect();
+    var controlHeight = control.offsetHeight || 32;
 
     if (composerRect) {
-      // Bottom-align the whole button+n8n-row stack to the input box's
-      // bottom edge, growing upward — so it never drops below the input,
-      // even if the stack is taller than a single-line input.
+      // Bottom-align the control to the input box's bottom edge, growing
+      // upward — so it never drops below the input.
       left = composerRect.right + 12;
-      top = composerRect.bottom - stackHeight;
-      left = Math.min(left, window.innerWidth - 140);
+      top = composerRect.bottom - controlHeight;
+      left = Math.min(left, window.innerWidth - 230);
     } else {
-      // No composer found (e.g. a ChatGPT Project overview page, which has
-      // no single chat input to anchor to) — fall back to a bottom-right
-      // corner instead of guessing a top-left spot that can land on top of
-      // the sidebar's own icons.
-      left = window.innerWidth - 150;
-      top = window.innerHeight - stackHeight - 24;
+      // No composer found (e.g. a ChatGPT Project overview page with no
+      // single chat input to anchor to) — fall back to bottom-right
+      // instead of guessing a top-left spot that can land on the sidebar.
+      left = window.innerWidth - 240;
+      top = window.innerHeight - controlHeight - 24;
     }
 
-    var cursorTop = top;
-    if (btn) {
-      btn.style.left = left + "px";
-      btn.style.top = cursorTop + "px";
-      cursorTop += btnHeight + gap;
-    }
-    if (n8nRow) {
-      n8nRow.style.left = left + "px";
-      n8nRow.style.top = cursorTop + "px";
-    }
+    control.style.left = left + "px";
+    control.style.top = top + "px";
   }
 
   function tryAnchoredInjection(info) {
@@ -172,8 +136,8 @@
     // float next to the composer instead. Project pages do have one (the
     // Share/"..." row), so they go through the same anchored path as Claude.
     if (info.site === "chatgpt" && info.type !== "project") {
-      injectButton(info, null, true, null);
-      updateChatGPTButtonPosition();
+      injectControl(info, null, true, null);
+      updateChatGPTControlPosition();
       return;
     }
 
@@ -183,7 +147,7 @@
     var result = findAnchorPoint(selectors);
 
     if (result) {
-      injectButton(info, result.container, false, result.reference);
+      injectControl(info, result.container, false, result.reference);
       return;
     }
 
@@ -191,7 +155,7 @@
       result = findAnchorPoint(selectors);
       if (result) {
         observer.disconnect();
-        injectButton(info, result.container, false, result.reference);
+        injectControl(info, result.container, false, result.reference);
       }
     });
 
@@ -199,9 +163,9 @@
 
     setTimeout(function () {
       observer.disconnect();
-      if (!document.getElementById(BUTTON_ID) && !document.getElementById(N8N_BUTTON_ID)) {
-        injectButton(info, null, true, null);
-        if (info.site === "chatgpt") updateChatGPTButtonPosition();
+      if (!document.getElementById(CONTROL_ID)) {
+        injectControl(info, null, true, null);
+        if (info.site === "chatgpt") updateChatGPTControlPosition();
       }
     }, HEADER_WAIT_MS);
   }
@@ -216,202 +180,189 @@
     return null;
   }
 
-  function createButtonElement(info) {
-    var btn = document.createElement("button");
-    btn.id = BUTTON_ID;
-    btn.setAttribute("data-deep-link", info.deepLink);
-    btn.setAttribute("data-site", info.site);
-    btn.title = "Open in " + (info.site === "claude" ? "Claude" : "ChatGPT") + " desktop app";
-
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "16");
-    svg.setAttribute("height", "16");
-    svg.setAttribute("viewBox", "0 0 16 16");
-    svg.setAttribute("fill", "none");
-    svg.innerHTML =
-      '<path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3" ' +
-      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M9 2h5v5M14 2L7 9" ' +
-      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
-
-    var span = document.createElement("span");
-    span.textContent = "Desktop";
-
-    btn.appendChild(svg);
-    btn.appendChild(span);
-
-    btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      var deepLink = btn.getAttribute("data-deep-link");
-      openDeepLink(deepLink);
-    });
-
-    return btn;
+  function getAvailableActions(info) {
+    var actions = [];
+    if (info.deepLink) actions.push("open");
+    if (n8nReady) actions.push("send");
+    return actions;
   }
 
-  function injectButton(info, container, floating, reference) {
-    var btn = null;
+  function appendOption(select, value, label) {
+    var opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  }
 
-    if (info.deepLink && !document.getElementById(BUTTON_ID)) {
-      btn = createButtonElement(info);
-      btn.classList.add("cod-action-btn");
+  function appendPlaceholderOption(select, label) {
+    var opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = label;
+    opt.disabled = true;
+    opt.selected = true;
+    opt.hidden = true;
+    select.appendChild(opt);
+  }
 
-      if (floating) {
-        btn.classList.add("cod-floating");
-        document.body.appendChild(btn);
-      } else {
-        btn.classList.add("cod-anchored");
-        if (reference && reference.nextSibling) {
-          container.insertBefore(btn, reference.nextSibling);
-        } else {
-          container.appendChild(btn);
-        }
-      }
-    }
+  function appendDisabledOption(select, label) {
+    var opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = label;
+    opt.disabled = true;
+    select.appendChild(opt);
+  }
 
-    if (n8nReady) {
-      injectN8nButton(info, container, floating, btn || reference);
+  function resetDependentSelect(select, placeholderLabel) {
+    select.innerHTML = "";
+    appendPlaceholderOption(select, placeholderLabel);
+    select.disabled = true;
+  }
+
+  function resetControl(wrap) {
+    var selects = wrap.querySelectorAll("select");
+    selects[0].value = "";
+    resetDependentSelect(selects[1], "Destination");
+    resetDependentSelect(selects[2], "Format");
+  }
+
+  // Only ever called to enter the busy state — leaving it is always
+  // followed by resetControl(), which sets the right disabled flags itself.
+  function setControlBusy(wrap) {
+    wrap.classList.add("cod-loading");
+    var selects = wrap.querySelectorAll("select");
+    for (var i = 0; i < selects.length; i++) {
+      selects[i].disabled = true;
     }
   }
 
-  var N8N_LABELS = {
-    project: "project",
-    code: "Claude Code session",
-    cowork: "Cowork session",
-  };
+  function handleOpenInDesktop(info, wrap) {
+    setControlBusy(wrap);
+    window.location.href = info.deepLink;
 
-  function createN8nButtonElement(info) {
-    var btn = document.createElement("button");
-    btn.id = N8N_BUTTON_ID;
-    btn.setAttribute("data-site", info.site);
-    var label = N8N_LABELS[info.type] || "chat";
-    btn.title = "Send this " + label + " to your n8n webhook";
-
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "16");
-    svg.setAttribute("height", "16");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.innerHTML =
-      '<path fill="currentColor" d="M21.4737 5.6842c-1.1772 0-2.1663.8051-2.4468 1.8947h-2.8955c-1.235 0-2.289.893-2.492 2.111l-.1038.623a1.263 1.263 0 0 1-1.246 1.0555H11.289c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947s-2.1663.8051-2.4467 1.8947H4.973c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947C1.1311 9.4737 0 10.6047 0 12s1.131 2.5263 2.5263 2.5263c1.1772 0 2.1663-.8051 2.4468-1.8947h1.4223c.2804 1.0896 1.2696 1.8947 2.4467 1.8947 1.1772 0 2.1663-.8051 2.4468-1.8947h1.0008a1.263 1.263 0 0 1 1.2459 1.0555l.1038.623c.203 1.218 1.257 2.111 2.492 2.111h.3692c.2804 1.0895 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.131 2.5263-2.5263s-1.131-2.5263-2.5263-2.5263c-1.1772 0-2.1664.805-2.4468 1.8947h-.3692a1.263 1.263 0 0 1-1.246-1.0555l-.1037-.623A2.52 2.52 0 0 0 13.9607 12a2.52 2.52 0 0 0 .821-1.4794l.1038-.623a1.263 1.263 0 0 1 1.2459-1.0555h2.8955c.2805 1.0896 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.131 2.5263-2.5263s-1.131-2.5263-2.5263-2.5263m0 1.2632a1.263 1.263 0 0 1 1.2631 1.2631 1.263 1.263 0 0 1-1.2631 1.2632 1.263 1.263 0 0 1-1.2632-1.2632 1.263 1.263 0 0 1 1.2632-1.2631M2.5263 10.7368A1.263 1.263 0 0 1 3.7895 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 1.2632 12a1.263 1.263 0 0 1 1.2631-1.2632m6.3158 0A1.263 1.263 0 0 1 10.1053 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 7.579 12a1.263 1.263 0 0 1 1.2632-1.2632m10.1053 3.7895a1.263 1.263 0 0 1 1.2631 1.2632 1.263 1.263 0 0 1-1.2631 1.2631 1.263 1.263 0 0 1-1.2632-1.2631 1.263 1.263 0 0 1 1.2632-1.2632"/>';
-
-    var span = document.createElement("span");
-    span.textContent = "Send to n8n";
-
-    btn.appendChild(svg);
-    btn.appendChild(span);
-
-    btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      triggerN8nSend(btn);
-    });
-
-    return btn;
+    setTimeout(function () {
+      wrap.classList.remove("cod-loading");
+      resetControl(wrap);
+      copyToClipboard(info.deepLink);
+    }, PROTOCOL_TIMEOUT_MS);
   }
 
-  function createN8nFormatSelect() {
-    var select = document.createElement("select");
-    select.id = N8N_FORMAT_ID;
-    select.className = "cod-format-select";
-    select.title = "Format to send to n8n";
-
-    var jsonOpt = document.createElement("option");
-    jsonOpt.value = "json";
-    jsonOpt.textContent = "JSON";
-
-    var mdOpt = document.createElement("option");
-    mdOpt.value = "markdown";
-    mdOpt.textContent = "MD";
-
-    select.appendChild(jsonOpt);
-    select.appendChild(mdOpt);
-    select.value = n8nFormat;
-
-    select.addEventListener("click", function (e) {
-      e.stopPropagation();
-    });
-
-    select.addEventListener("change", function () {
-      n8nFormat = select.value;
-      chrome.storage.sync.set({ n8nExportFormat: select.value });
-    });
-
-    return select;
-  }
-
-  function removeN8nElements() {
-    var row = document.getElementById(N8N_ROW_ID);
-    if (row) {
-      row.remove();
-      return;
-    }
-    var btn = document.getElementById(N8N_BUTTON_ID);
-    if (btn) btn.remove();
-    var select = document.getElementById(N8N_FORMAT_ID);
-    if (select) select.remove();
-  }
-
-  function injectN8nButton(info, container, floating, afterElement) {
-    if (document.getElementById(N8N_BUTTON_ID)) return;
-
-    var select = createN8nFormatSelect();
-    var btn = createN8nButtonElement(info);
-    btn.classList.add("cod-action-btn");
-
-    if (floating) {
-      var row = document.createElement("div");
-      row.id = N8N_ROW_ID;
-      row.className = "cod-n8n-floating-row";
-      row.appendChild(btn);
-      row.appendChild(select);
-      document.body.appendChild(row);
-
-      if (info.site === "chatgpt") {
-        row.classList.add("cod-n8n-floating-row-chatgpt");
-        updateChatGPTButtonPosition();
-      }
-    } else {
-      select.classList.add("cod-anchored-select");
-      btn.classList.add("cod-anchored");
-      if (afterElement && afterElement.nextSibling) {
-        container.insertBefore(btn, afterElement.nextSibling);
-        container.insertBefore(select, btn.nextSibling);
-      } else {
-        container.appendChild(btn);
-        container.appendChild(select);
-      }
-    }
-  }
-
-  function triggerN8nSend(btn) {
+  function handleSendToN8n(wrap) {
     if (n8nSending) return;
     n8nSending = true;
-
-    btn.classList.remove("cod-success");
-    btn.classList.add("cod-loading");
-    var span = btn.querySelector("span");
-    var originalText = span ? span.textContent : "";
-    if (span) span.textContent = "Sending...";
+    setControlBusy(wrap);
 
     extractAndSend(function (result) {
       n8nSending = false;
-      btn.classList.remove("cod-loading");
+      wrap.classList.remove("cod-loading");
+      resetControl(wrap);
 
       if (result && result.ok) {
-        btn.classList.add("cod-success");
-        if (span) span.textContent = "✓ Sent";
         showToast("Sent to n8n.");
-        setTimeout(function () {
-          btn.classList.remove("cod-success");
-          if (span) span.textContent = originalText;
-        }, 1800);
       } else {
-        if (span) span.textContent = originalText;
         var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
         showToast("Send to n8n failed: " + errMsg);
       }
     });
+  }
+
+  function buildControlElement(info, actions) {
+    var wrap = document.createElement("div");
+    wrap.id = CONTROL_ID;
+    wrap.className = "cod-control";
+    wrap.setAttribute("data-site", info.site);
+
+    var actionSelect = document.createElement("select");
+    actionSelect.className = "cod-select";
+    actionSelect.title = "Choose an action";
+    appendPlaceholderOption(actionSelect, "Action");
+    if (actions.indexOf("open") !== -1) appendOption(actionSelect, "open", "Open in");
+    if (actions.indexOf("send") !== -1) appendOption(actionSelect, "send", "Send to");
+
+    var destSelect = document.createElement("select");
+    destSelect.className = "cod-select";
+    destSelect.title = "Choose a destination";
+    destSelect.disabled = true;
+    appendPlaceholderOption(destSelect, "Destination");
+
+    var formatSelect = document.createElement("select");
+    formatSelect.className = "cod-select";
+    formatSelect.title = "Choose a format";
+    formatSelect.disabled = true;
+    appendPlaceholderOption(formatSelect, "Format");
+
+    [actionSelect, destSelect, formatSelect].forEach(function (sel) {
+      sel.addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+    });
+
+    actionSelect.addEventListener("change", function () {
+      var action = actionSelect.value;
+      resetDependentSelect(formatSelect, "Format");
+
+      destSelect.innerHTML = "";
+      appendPlaceholderOption(destSelect, "Destination");
+      if (action === "open") {
+        appendOption(destSelect, "desktop", "Desktop");
+      } else if (action === "send") {
+        appendOption(destSelect, "n8n", "n8n");
+        appendDisabledOption(destSelect, "More destinations soon");
+      }
+      destSelect.disabled = !action;
+    });
+
+    destSelect.addEventListener("change", function (e) {
+      e.stopPropagation();
+      var action = actionSelect.value;
+      var destination = destSelect.value;
+      if (!destination) return;
+
+      if (action === "open" && destination === "desktop") {
+        handleOpenInDesktop(info, wrap);
+        return;
+      }
+
+      if (action === "send" && destination === "n8n") {
+        formatSelect.innerHTML = "";
+        appendPlaceholderOption(formatSelect, "Format");
+        appendOption(formatSelect, "json", "JSON");
+        appendOption(formatSelect, "markdown", "MD");
+        appendDisabledOption(formatSelect, "More formats soon");
+        formatSelect.disabled = false;
+      }
+    });
+
+    formatSelect.addEventListener("change", function (e) {
+      e.stopPropagation();
+      var format = formatSelect.value;
+      if (!format) return;
+      chrome.storage.sync.set({ n8nExportFormat: format });
+      handleSendToN8n(wrap);
+    });
+
+    wrap.appendChild(actionSelect);
+    wrap.appendChild(destSelect);
+    wrap.appendChild(formatSelect);
+
+    return wrap;
+  }
+
+  function injectControl(info, container, floating, reference) {
+    if (document.getElementById(CONTROL_ID)) return;
+
+    var actions = getAvailableActions(info);
+    if (!actions.length) return;
+
+    var control = buildControlElement(info, actions);
+    control.classList.add(floating ? "cod-floating" : "cod-anchored");
+
+    if (floating) {
+      document.body.appendChild(control);
+    } else if (reference && reference.nextSibling) {
+      container.insertBefore(control, reference.nextSibling);
+    } else {
+      container.appendChild(control);
+    }
   }
 
   function extractAndSend(callback) {
@@ -457,26 +408,6 @@
     extractAndSend(sendResponse);
     return true;
   });
-
-  function openDeepLink(deepLink) {
-    var btn = document.getElementById(BUTTON_ID);
-    if (btn) {
-      btn.classList.add("cod-loading");
-      var span = btn.querySelector("span");
-      if (span) span.textContent = "Opening...";
-    }
-
-    window.location.href = deepLink;
-
-    setTimeout(function () {
-      if (btn) {
-        btn.classList.remove("cod-loading");
-        var span = btn.querySelector("span");
-        if (span) span.textContent = "Open in App";
-      }
-      copyToClipboard(deepLink);
-    }, PROTOCOL_TIMEOUT_MS);
-  }
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function () {

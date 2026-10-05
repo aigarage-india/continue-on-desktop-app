@@ -35,116 +35,29 @@ html.dark {
   --cod-toast-text: #1a1a1a;
 }
 
-.cod-action-btn {
+.cod-control {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 4px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1;
-  color: var(--cod-text);
-  background: var(--cod-bg);
-  border: 1px solid var(--cod-accent);
-  border-radius: 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
   z-index: 9999;
 }
 
-.cod-action-btn:hover {
-  background: var(--cod-accent-bg);
-  box-shadow: 0 1px 3px var(--cod-shadow);
-}
-
-.cod-action-btn:active {
-  transform: scale(0.97);
-}
-
-.cod-action-btn svg {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-}
-
-.cod-action-btn.cod-loading {
-  opacity: 0.7;
+.cod-control.cod-loading {
+  opacity: 0.6;
   pointer-events: none;
 }
 
-#cod-n8n-btn {
-  border-color: var(--cod-n8n-accent);
-}
-
-#cod-n8n-btn:hover {
-  background: var(--cod-n8n-accent-bg);
-}
-
-.cod-action-btn.cod-success {
-  background: var(--cod-success);
-  border-color: var(--cod-success);
-  color: #ffffff;
-}
-
-.cod-action-btn.cod-success:hover {
-  background: var(--cod-success);
-}
-
-.cod-action-btn.cod-anchored {
-  margin-left: 4px;
-  margin-right: 12px;
-}
-
-[data-site="chatgpt"].cod-action-btn.cod-anchored {
-  margin-left: 0;
-  margin-right: 8px;
-}
-
-#cod-n8n-btn.cod-anchored {
-  margin-right: 0;
-}
-
-#cod-continue-btn.cod-anchored:has(+ #cod-n8n-btn) {
-  margin-right: 4px;
-}
-
-.cod-action-btn.cod-floating {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 10px 16px;
-  font-size: 14px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px var(--cod-shadow), 0 0 0 1px var(--cod-border);
-}
-
-[data-site="chatgpt"].cod-action-btn.cod-floating {
-  bottom: auto;
-  right: auto;
-  top: 12px;
-  left: 60px;
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px var(--cod-shadow), 0 0 0 1px var(--cod-border);
-  transition: left 0.15s ease, top 0.15s ease;
-}
-
-.cod-anchored-select {
-  margin-left: 4px;
-  height: 28px;
-}
-
-.cod-format-select {
+.cod-select {
   font-family: inherit;
   font-size: 12px;
+  font-weight: 500;
   color: var(--cod-text);
   background-color: var(--cod-bg);
   border: 1px solid var(--cod-accent);
   border-radius: 6px;
-  padding: 0 20px 0 6px;
+  height: 28px;
+  padding: 0 20px 0 8px;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -152,48 +65,47 @@ html.dark {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 6px center;
+  transition: background 0.15s, box-shadow 0.15s;
 }
 
-.cod-n8n-floating-row {
+.cod-select:hover:not(:disabled) {
+  background-color: var(--cod-accent-bg);
+}
+
+.cod-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cod-control.cod-anchored {
+  margin-left: 4px;
+  margin-right: 12px;
+}
+
+[data-site="chatgpt"].cod-control.cod-anchored {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+.cod-control.cod-floating {
   position: fixed;
-  bottom: 76px;
+  bottom: 24px;
   right: 24px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  z-index: 9999;
-}
-
-.cod-n8n-floating-row select {
-  height: 32px;
-  font-size: 13px;
-  border-radius: 8px;
-}
-
-.cod-n8n-floating-row .cod-action-btn {
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 6px 8px;
+  background: var(--cod-bg);
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--cod-shadow), 0 0 0 1px var(--cod-border);
 }
 
-.cod-n8n-floating-row-chatgpt {
+[data-site="chatgpt"].cod-control.cod-floating {
   bottom: auto;
   right: auto;
   top: 12px;
-}
-
-.cod-n8n-floating-row-chatgpt select {
-  height: 26px;
-  font-size: 12px;
-  border-radius: 6px;
-}
-
-.cod-n8n-floating-row-chatgpt .cod-action-btn {
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 8px;
+  left: 60px;
+  padding: 4px 6px;
+  border-radius: 10px;
   box-shadow: 0 1px 4px var(--cod-shadow), 0 0 0 1px var(--cod-border);
+  transition: left 0.15s ease, top 0.15s ease;
 }
 
 #cod-toast {
