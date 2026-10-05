@@ -90,14 +90,16 @@
 
     var main = document.querySelector("main");
     if (main) {
-      var left = main.getBoundingClientRect().left + 12;
-      btn.style.left = left + "px";
+      var mainRect = main.getBoundingClientRect();
+      btn.style.left = (mainRect.left + 12) + "px";
+      btn.style.top = (mainRect.top + 12) + "px";
     }
 
     var n8nRow = document.getElementById(N8N_ROW_ID);
     if (n8nRow) {
       var btnRect = btn.getBoundingClientRect();
       n8nRow.style.left = (btnRect.right + 8) + "px";
+      n8nRow.style.top = btn.style.top;
     }
   }
 
