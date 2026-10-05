@@ -19,7 +19,7 @@
 
   var LANDMARK_SELECTORS = {
     claude: [
-      'button[aria-label^="More options for"]',
+      'button[aria-label^="More options for"]:not([data-row-action])',
       'button[aria-label*="rename chat"]',
       'button[aria-label*="rename conversation"]',
     ],
