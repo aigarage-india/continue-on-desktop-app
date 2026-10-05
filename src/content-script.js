@@ -129,10 +129,12 @@
       top = composerRect.bottom - stackHeight;
       left = Math.min(left, window.innerWidth - 140);
     } else {
-      var main = document.querySelector("main");
-      var header = document.querySelector('header[data-app-shell-titlebar]');
-      left = main ? main.getBoundingClientRect().left + 12 : 60;
-      top = header ? header.getBoundingClientRect().bottom + 8 : 12;
+      // No composer found (e.g. a ChatGPT Project overview page, which has
+      // no single chat input to anchor to) — fall back to a bottom-right
+      // corner instead of guessing a top-left spot that can land on top of
+      // the sidebar's own icons.
+      left = window.innerWidth - 150;
+      top = window.innerHeight - stackHeight - 24;
     }
 
     btn.style.left = left + "px";
