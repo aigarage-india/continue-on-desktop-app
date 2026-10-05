@@ -23,6 +23,9 @@
       'button[aria-label*="rename chat"]',
       'button[aria-label*="rename conversation"]',
     ],
+    chatgptProject: [
+      'button[aria-label="Project actions"]',
+    ],
   };
 
   var CHATGPT_INPUT_SELECTORS = [
@@ -165,13 +168,18 @@
   }
 
   function tryAnchoredInjection(info) {
-    if (info.site === "chatgpt") {
+    // Regular ChatGPT chats have no stable header landmark to anchor to —
+    // float next to the composer instead. Project pages do have one (the
+    // Share/"..." row), so they go through the same anchored path as Claude.
+    if (info.site === "chatgpt" && info.type !== "project") {
       injectButton(info, null, true, null);
       updateChatGPTButtonPosition();
       return;
     }
 
-    var selectors = LANDMARK_SELECTORS[info.site] || [];
+    var selectors = info.site === "chatgpt"
+      ? LANDMARK_SELECTORS.chatgptProject
+      : (LANDMARK_SELECTORS[info.site] || []);
     var result = findAnchorPoint(selectors);
 
     if (result) {
@@ -193,6 +201,7 @@
       observer.disconnect();
       if (!document.getElementById(BUTTON_ID) && !document.getElementById(N8N_BUTTON_ID)) {
         injectButton(info, null, true, null);
+        if (info.site === "chatgpt") updateChatGPTButtonPosition();
       }
     }, HEADER_WAIT_MS);
   }
