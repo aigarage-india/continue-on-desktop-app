@@ -73,10 +73,30 @@ function sendToN8n(payload) {
   });
 }
 
+function friendlyErrorForStatus(status, hasAuthHeader) {
+  if (status === 401 || status === 403) {
+    return hasAuthHeader
+      ? "n8n rejected the request (" + status + ") — the auth header name/value in Options doesn't match the credential configured on the webhook."
+      : "n8n rejected the request (" + status + ") — this webhook requires an auth header. Add the header name/value in Options to match its n8n credential.";
+  }
+  if (status === 404) {
+    return "Webhook not found (404) — check the URL in Options is correct and the workflow is active in n8n.";
+  }
+  if (status >= 500) {
+    return "n8n server error (" + status + ") — check the workflow's execution log in n8n for details.";
+  }
+  return "n8n returned an error (status " + status + ").";
+}
+
 function attempt(url, body, contentType, authHeaderName, authHeaderValue, allowRetry) {
   return postOnce(url, body, contentType, authHeaderName, authHeaderValue)
     .then(function (res) {
-      return { ok: res.ok, status: res.status };
+      if (res.ok) return { ok: true, status: res.status };
+      return {
+        ok: false,
+        status: res.status,
+        error: friendlyErrorForStatus(res.status, !!(authHeaderName && authHeaderValue)),
+      };
     })
     .catch(function (err) {
       var isNetworkError = err.name === "AbortError" || err.name === "TypeError";
