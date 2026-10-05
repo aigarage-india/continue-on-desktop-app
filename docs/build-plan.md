@@ -33,11 +33,12 @@ Build a Manifest V3 Chrome extension that adds a "Continue on Desktop App" butto
 | 13 | Store listing metadata (description, screenshots placeholders) | Phase 5 | Distribution |
 | 14 | n8n extraction + send core (shipped) | Phase 6 | Feature |
 | 15 | n8n hardening: local storage, masking, auth header (shipped) | Phase 7 | Feature |
-| 16 | Perplexity extraction + send-to-n8n | Phase 8a | Feature |
-| 17 | DeepSeek extraction + send-to-n8n | Phase 8b | Feature |
-| 18 | Gemini extraction + send-to-n8n | Phase 8c | Feature |
-| 19 | Batch send / download fallback / send history (deferred) | Phase 9 | Optional |
-| 20 | Claude Cowork / Code session export (deferred, needs scoping) | Phase 10 | Optional |
+| 16 | Claude Code session export + send-to-n8n | Phase 8a | Feature |
+| 17 | Claude Cowork session export + send-to-n8n | Phase 8b | Feature |
+| 18 | Perplexity extraction + send-to-n8n | Phase 9a | Feature |
+| 19 | DeepSeek extraction + send-to-n8n | Phase 9b | Feature |
+| 20 | Gemini extraction + send-to-n8n | Phase 9c | Feature |
+| 21 | Batch send / download fallback / send history (deferred) | Phase 10 | Optional |
 
 ---
 
@@ -278,7 +279,96 @@ items.
 
 ---
 
-## Phase 8: Additional chat sites — Gemini, Perplexity, DeepSeek
+## Phase 8 (reordered — was Phase 10): Claude Cowork & Claude Code session export
+
+**Raised by:** "what about claude cowork & code??" — referring to
+`claude.ai/cowork/{id}` and `claude.ai/code/{id}` session URLs (e.g.
+`claude.ai/cowork/cse_01YH3R7ssEFeKw5e4TrNtqd8`,
+`claude.ai/code/session_01B3DABLd8EbJTNh927naUAo`).
+
+**Why this is its own phase, not folded in with Phase 9's sites:** the
+content script already loads on these pages today (manifest matches
+`https://claude.ai/*` broadly), but `ContinueOnDesktop.getSiteInfo()` in
+`src/utils.js` only recognizes `/chat/{id}` and `/project/{id}` — so no
+buttons currently appear on Cowork/Code pages, by design, not by bug. A
+Cowork or Code session isn't a plain message list the way a chat is — it
+includes tool calls, file diffs, command output, possibly multi-agent
+sub-turns — so this needs its own extraction logic, not a copy-paste of
+`extractChat`.
+
+**No desktop deep-link in scope** — same reasoning as Phase 9: Code sessions
+here are cloud/web sessions of the Claude Code CLI product, Cowork is
+browser-only; neither has a registered protocol handler for a specific
+session. `getSiteInfo()` returns `deepLink: null` for both — extraction +
+send-to-n8n only.
+
+**URL patterns (confirmed from real URLs above):**
+- Code: `^https:\/\/claude\.ai\/code\/([a-zA-Z0-9_-]+)` → id like
+  `session_01B3DABLd8EbJTNh927naUAo`
+- Cowork: `^https:\/\/claude\.ai\/cowork\/([a-zA-Z0-9_-]+)` → id like
+  `cse_01YH3R7ssEFeKw5e4TrNtqd8`
+
+**Files to create/modify:**
+- `src/utils.js` — extend `ContinueOnDesktop.getSiteInfo()`: recognize both
+  patterns, return `{site: "claude", type: "code"|"cowork", conversationId,
+  deepLink: null}` (adding a `type` field alongside the existing implicit
+  "is this a project" check keeps `content-script.js` and the extractor
+  dispatch from needing their own one-off URL regexes, which is how
+  `isClaudeProjectUrl()` works today — worth folding that into the same
+  `type` field while here, as a small cleanup, not scope creep).
+- `src/extractors/claude.js` — add `extractCodeSession(id)` and
+  `extractCoworkSession(id)`, alongside the existing `extractChat`/
+  `extractProject`. Same normalized payload shape
+  (`{source, type, id, url, title, exported_at, messages, markdown}`), but
+  the Markdown flattening needs new handling for tool-call turns (render as
+  `tool: <name>` + condensed args, then result — not raw JSON dumped inline)
+  since a real session can contain large outputs (full file contents,
+  command stdout).
+- `src/content-script.js` — branch button label on `info.type` ("Send this
+  session to n8n" for code/cowork, matching the existing project-page
+  wording pattern); may need new `LANDMARK_SELECTORS` entries if these
+  pages' header DOM differs from a regular chat (confirm live, don't guess).
+- `options/options.html` / README — add a stronger warning specifically for
+  Code/Cowork sends: unlike a chat, a session transcript can include full
+  file contents and command output from your own machine, so what you're
+  sending to the webhook is a superset of a normal chat export.
+
+**Unavoidable investigation step (same method used for every other
+extractor in this project):** the same-origin API that backs these pages is
+undocumented. Need to do, together with you, on one real Code session and
+one real Cowork session:
+1. Open the session page, inspect Network tab for the same-origin request(s)
+   that load the transcript (likely something adjacent to
+   `/api/organizations/{org}/...`, but the exact path and whether it's one
+   request or several — e.g. metadata + a paginated event stream — is
+   unconfirmed).
+2. Confirm response JSON shape: how tool calls, tool results, and file diffs
+   are represented, and whether there's anything in there (auth tokens,
+   internal IDs) that shouldn't be forwarded to a third-party webhook as-is.
+3. Confirm header/anchor selector for button placement on each page type.
+
+**Sub-phases:** 8a Claude Code sessions, 8b Claude Cowork sessions — separate
+investigation + sign-off for each, since they're different products likely
+on different endpoints with different transcript shapes.
+
+**Testing checklist (per sub-phase):**
+- [ ] Extraction returns correct, complete turn sequence for a real session
+      (console test) — including tool calls, not just text turns
+- [ ] "Send to n8n" button appears on a real session page, doesn't appear on
+      the Code/Cowork landing/list pages
+- [ ] Markdown export is readable (tool calls rendered sensibly, not a wall
+      of raw JSON)
+- [ ] Send succeeds end-to-end to a test webhook, JSON and Markdown
+- [ ] Spot-check a session with large tool output (e.g. a long command run)
+      doesn't silently truncate or crash the send
+- [ ] No console errors
+
+**Sign-off gate:** 8a (Code) signed off and tested before starting 8b
+(Cowork) — don't assume the same API shape carries over between the two.
+
+---
+
+## Phase 9 (reordered — was Phase 8): Additional chat sites — Gemini, Perplexity, DeepSeek
 
 **Goal:** Extend the existing "Send to n8n" extraction pattern to
 gemini.google.com, perplexity.ai, and chat.deepseek.com. Desktop deep-link
@@ -293,10 +383,10 @@ below.
 | Perplexity | Yes (Mac app) | Only a generic `perplexity-app://search?q=...` scheme for *new* searches has public documentation — nothing showing it can open an *existing* thread by ID. |
 | DeepSeek | No real native app — official "desktop" option is a browser-wrapper shortcut, not an installed app with its own protocol handler | N/A |
 
-Conclusion: ship extraction-only for all three in Phase 8. If a user later
+Conclusion: ship extraction-only for all three in Phase 9. If a user later
 confirms (via testing) that Gemini's or Perplexity's installed app actually
 opens a specific conversation from a URL, add the Desktop button for that
-site as a small follow-up — don't block Phase 8 on it.
+site as a small follow-up — don't block Phase 9 on it.
 
 **Files to create/modify:**
 - `src/extractors/gemini.js`, `src/extractors/perplexity.js`,
@@ -340,13 +430,13 @@ selector risk) — open to reordering based on which you use most.
 - [ ] No console errors
 
 **Sign-off gate:** each site signed off individually as it's completed (this
-phase is naturally three sub-batches — 8a Perplexity, 8b DeepSeek, 8c
+phase is naturally three sub-batches — 9a Perplexity, 9b DeepSeek, 9c
 Gemini); don't start the next site until the current one is tested +
 approved.
 
 ---
 
-## Phase 9 (renumbered from the old, deferred "Phase 8"): Batch send, download fallback, send history
+## Phase 10 (reordered — was Phase 9): Batch send, download fallback, send history
 
 Previously discussed informally, never built. Kept optional/deferred —
 revisit only if you ask for it.
@@ -359,44 +449,6 @@ revisit only if you ask for it.
 
 **Status:** not scheduled. No files/testing checklist written yet — this
 gets fully planned if/when you decide to pick it up.
-
----
-
-## Phase 10 (new, separate from Phase 8): Claude Cowork & Claude Code session export
-
-**Raised by:** "what about claude cowork & code??" — referring to
-`claude.ai/cowork/{id}` and `claude.ai/code/{id}` session URLs.
-
-**Why this is its own phase, not folded into Phase 8:** the content script
-already loads on these pages today (manifest matches `https://claude.ai/*`
-broadly), but `ContinueOnDesktop.getSiteInfo()` in `src/utils.js` only
-recognizes `/chat/{id}` and `/project/{id}` — so no buttons currently appear
-on Cowork/Code pages, by design, not by bug. Adding them is a real scope
-expansion:
-- **Different transcript shape.** A Cowork or Code session isn't a plain
-  message list — it includes tool calls, file diffs, command output,
-  possibly multi-agent sub-turns. The existing `{messages: [...]}` /
-  Markdown-flattening logic in `src/extractors/claude.js` would need
-  meaningfully different handling, not a copy-paste.
-- **API shape unconfirmed.** Whether claude.ai exposes a same-origin
-  transcript-fetch endpoint for Cowork/Code sessions (analogous to
-  `/api/organizations/{org}/chat_conversations/{id}` for regular chats) is
-  unknown without live inspection — same investigation step as Phase 8,
-  done against these specific session types.
-- **No desktop deep-link angle at all** — Code sessions here are cloud/web
-  sessions of the Claude Code CLI product, not something with a registered
-  protocol handler; Cowork is browser-only. So this phase, if built, would
-  be extraction + send-to-n8n only, same as Phase 8's conclusion.
-
-**Recommendation:** don't block Phase 8 on this. Treat as a candidate
-follow-up — worth it if you'd actually use "export my Cowork/Code session to
-n8n" (e.g. to log or summarize agent runs), lower priority if it's just
-"should we," since it's a narrower use case (your own agent sessions) vs.
-Phase 8's three major chat products.
-
-**Status:** not started, not yet scoped into a real plan — needs a decision
-from you on whether it's worth the investigation effort before writing a
-proper phase (files, testing checklist, sign-off gate) the way Phase 8 has.
 
 ---
 
