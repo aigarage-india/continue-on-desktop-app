@@ -25,6 +25,23 @@
     ],
   };
 
+  var CHATGPT_INPUT_SELECTORS = [
+    "#prompt-textarea",
+    'textarea[data-testid="chat-input-textarea"]',
+    'form [contenteditable="true"]',
+  ];
+
+  function findChatGPTComposerRect() {
+    for (var i = 0; i < CHATGPT_INPUT_SELECTORS.length; i++) {
+      var el = document.querySelector(CHATGPT_INPUT_SELECTORS[i]);
+      if (el) {
+        var form = el.closest("form");
+        return (form || el).getBoundingClientRect();
+      }
+    }
+    return null;
+  }
+
   function init() {
     var info = ContinueOnDesktop.getSiteInfo(window.location.href);
     if (!info.site) return;
@@ -95,11 +112,20 @@
     var btn = document.getElementById(BUTTON_ID);
     if (!btn || btn.getAttribute("data-site") !== "chatgpt") return;
 
-    var main = document.querySelector("main");
-    var header = document.querySelector('header[data-app-shell-titlebar]');
+    var left, top;
+    var composerRect = findChatGPTComposerRect();
 
-    var left = main ? main.getBoundingClientRect().left + 12 : 60;
-    var top = header ? header.getBoundingClientRect().bottom + 8 : 12;
+    if (composerRect) {
+      var btnHeight = btn.offsetHeight || 32;
+      left = composerRect.right + 12;
+      top = composerRect.top + composerRect.height / 2 - btnHeight / 2;
+      left = Math.min(left, window.innerWidth - 140);
+    } else {
+      var main = document.querySelector("main");
+      var header = document.querySelector('header[data-app-shell-titlebar]');
+      left = main ? main.getBoundingClientRect().left + 12 : 60;
+      top = header ? header.getBoundingClientRect().bottom + 8 : 12;
+    }
 
     btn.style.left = left + "px";
     btn.style.top = top + "px";

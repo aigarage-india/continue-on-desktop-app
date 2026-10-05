@@ -129,7 +129,7 @@ html.dark {
   font-size: 13px;
   border-radius: 8px;
   box-shadow: 0 1px 4px var(--cod-shadow), 0 0 0 1px var(--cod-border);
-  transition: left 0.15s ease;
+  transition: left 0.15s ease, top 0.15s ease;
 }
 
 .cod-anchored-select {
