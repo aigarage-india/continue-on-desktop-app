@@ -33,6 +33,9 @@ function initN8nSection() {
   var toggleExport = document.getElementById("toggle-n8n-export");
   var webhookUrlInput = document.getElementById("webhook-url");
   var toggleWebhookVisibility = document.getElementById("toggle-webhook-visibility");
+  var authHeaderNameInput = document.getElementById("auth-header-name");
+  var authHeaderValueInput = document.getElementById("auth-header-value");
+  var toggleAuthHeaderVisibility = document.getElementById("toggle-auth-header-visibility");
   var saveWebhookBtn = document.getElementById("save-webhook-btn");
   var exportFormatSelect = document.getElementById("export-format");
   var testConnectionBtn = document.getElementById("test-connection-btn");
@@ -46,20 +49,25 @@ function initN8nSection() {
     }
   );
 
-  chrome.storage.local.get({ n8nWebhookUrl: "" }, function (settings) {
-    webhookUrlInput.value = settings.n8nWebhookUrl;
+  chrome.storage.local.get(
+    { n8nWebhookUrl: "", n8nAuthHeaderName: "", n8nAuthHeaderValue: "" },
+    function (settings) {
+      webhookUrlInput.value = settings.n8nWebhookUrl;
+      authHeaderNameInput.value = settings.n8nAuthHeaderName;
+      authHeaderValueInput.value = settings.n8nAuthHeaderValue;
 
-    if (settings.n8nWebhookUrl) {
-      checkPermissionGranted(settings.n8nWebhookUrl, function (granted) {
-        if (!granted) {
-          showWebhookStatus(
-            "Permission for this URL was revoked. Click Save to re-grant it.",
-            "error"
-          );
-        }
-      });
+      if (settings.n8nWebhookUrl) {
+        checkPermissionGranted(settings.n8nWebhookUrl, function (granted) {
+          if (!granted) {
+            showWebhookStatus(
+              "Permission for this URL was revoked. Click Save to re-grant it.",
+              "error"
+            );
+          }
+        });
+      }
     }
-  });
+  );
 
   toggleWebhookVisibility.addEventListener("click", function () {
     var showing = webhookUrlInput.type === "text";
@@ -68,6 +76,16 @@ function initN8nSection() {
     toggleWebhookVisibility.setAttribute(
       "aria-label",
       showing ? "Show webhook URL" : "Hide webhook URL"
+    );
+  });
+
+  toggleAuthHeaderVisibility.addEventListener("click", function () {
+    var showing = authHeaderValueInput.type === "text";
+    authHeaderValueInput.type = showing ? "password" : "text";
+    toggleAuthHeaderVisibility.textContent = showing ? "Show" : "Hide";
+    toggleAuthHeaderVisibility.setAttribute(
+      "aria-label",
+      showing ? "Show header value" : "Hide header value"
     );
   });
 
@@ -81,8 +99,23 @@ function initN8nSection() {
 
   saveWebhookBtn.addEventListener("click", function () {
     var url = webhookUrlInput.value.trim();
+    var headerName = authHeaderNameInput.value.trim();
+    var headerValue = authHeaderValueInput.value.trim();
+
+    if (!!headerName !== !!headerValue) {
+      showWebhookStatus(
+        "Auth header needs both a name and a value — or leave both blank.",
+        "error"
+      );
+      return;
+    }
+
     if (!url) {
-      chrome.storage.local.set({ n8nWebhookUrl: "" });
+      chrome.storage.local.set({
+        n8nWebhookUrl: "",
+        n8nAuthHeaderName: headerName,
+        n8nAuthHeaderValue: headerValue,
+      });
       showWebhookStatus("Webhook URL cleared.", "success");
       return;
     }
@@ -98,16 +131,23 @@ function initN8nSection() {
         showWebhookStatus("Permission denied — webhook URL not saved.", "error");
         return;
       }
-      chrome.storage.local.set({ n8nWebhookUrl: url }, function () {
-        if (isInsecureUrl(url)) {
-          showWebhookStatus(
-            "Webhook URL saved. Warning: this is an unencrypted http:// URL — your conversation content will travel in plain text.",
-            "error"
-          );
-        } else {
-          showWebhookStatus("Webhook URL saved.", "success");
+      chrome.storage.local.set(
+        {
+          n8nWebhookUrl: url,
+          n8nAuthHeaderName: headerName,
+          n8nAuthHeaderValue: headerValue,
+        },
+        function () {
+          if (isInsecureUrl(url)) {
+            showWebhookStatus(
+              "Webhook URL saved. Warning: this is an unencrypted http:// URL — your conversation content will travel in plain text.",
+              "error"
+            );
+          } else {
+            showWebhookStatus("Webhook URL saved.", "success");
+          }
         }
-      });
+      );
     });
   });
 
@@ -131,9 +171,16 @@ function initN8nSection() {
       }
 
       showWebhookStatus("Testing...", "pending");
+      var headers = { "Content-Type": "application/json" };
+      var headerName = authHeaderNameInput.value.trim();
+      var headerValue = authHeaderValueInput.value.trim();
+      if (headerName && headerValue) {
+        headers[headerName] = headerValue;
+      }
+
       fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify({ ping: true, source: "continue-on-desktop-app" }),
       })
         .then(function (res) {

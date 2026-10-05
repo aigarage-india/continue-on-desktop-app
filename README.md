@@ -76,6 +76,14 @@ Extraction reads claude.ai's and chatgpt.com's own same-origin API endpoints (th
 
 **Webhook URL handling:** since a webhook URL often works like a de-facto secret (anyone with it can trigger your n8n workflow), it's stored in `chrome.storage.local` — device-only, never synced via your Google account like the other preferences. The Options page masks it like a password field (with a show/hide toggle), and you'll see a warning if you enter a plain `http://` URL (other than localhost), since that would send conversation content over the network unencrypted.
 
+**Optional auth header:** on the "Send to n8n" panel, below the webhook URL, there's an optional header name/value pair. Leave both blank and nothing changes. Fill both in and that header is sent on every request to your webhook — so anyone who gets hold of just the URL (a leaked link, browser history, a screenshot) still can't trigger your workflow without the secret too. This maps directly onto n8n's built-in **Header Auth** credential:
+
+1. In n8n, open your webhook node → **Authentication** → **Header Auth**.
+2. Create a credential with a header name (e.g. `X-Webhook-Secret`) and a secret value of your choice.
+3. In this extension's Options, enter that same header name and value, then Save.
+
+Both fields are stored the same way as the webhook URL (`chrome.storage.local`, masked value field).
+
 ## License
 
 MIT

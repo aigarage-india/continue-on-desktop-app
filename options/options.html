@@ -52,6 +52,16 @@
           <button id="save-webhook-btn" class="btn btn-secondary">Save</button>
         </div>
 
+        <label class="field-label" for="auth-header-name">Auth header (optional)</label>
+        <div class="field-row">
+          <input type="text" id="auth-header-name" placeholder="Header name, e.g. X-Webhook-Secret" class="auth-header-name-input" autocomplete="off">
+          <div class="webhook-input-wrap">
+            <input type="password" id="auth-header-value" placeholder="Secret value" autocomplete="off">
+            <button type="button" id="toggle-auth-header-visibility" class="webhook-visibility-btn" aria-label="Show header value">Show</button>
+          </div>
+        </div>
+        <p class="field-hint">Sent as a custom header on every request, so your webhook can reject anyone who doesn't have it — matches n8n's built-in "Header Auth" webhook credential. Leave both blank to skip.</p>
+
         <label class="field-label" for="export-format">Payload format</label>
         <select id="export-format">
           <option value="json">JSON</option>

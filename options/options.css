@@ -148,6 +148,17 @@ input[type="checkbox"] {
   margin-top: 14px;
 }
 
+.auth-header-name-input {
+  flex: 0 0 38%;
+}
+
+.field-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #999;
+  line-height: 1.4;
+}
+
 input[type="url"],
 input[type="password"],
 input[type="text"],
