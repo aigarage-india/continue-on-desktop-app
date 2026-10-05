@@ -359,24 +359,27 @@ tested against a live page in a real browser.
 more history than that only exports its most recent 200. Pagination is a
 follow-up if this turns out to matter.
 
-**8a — live-tested, working.** Button anchored correctly, send succeeded
-end-to-end to a real webhook, payload has correct chronological order,
-correct human/assistant role mapping, and readable (if terse) tool_use/
-tool_result placeholders. Two real bugs found and fixed during testing:
+**8a — live-tested, working, confirmed twice.** Button anchored correctly,
+send succeeded end-to-end to a real webhook on two separate live sessions,
+payload has correct chronological order and correct human/assistant role
+mapping. Three real issues found and fixed during testing:
 - Both `/v1/code/sessions/{id}` endpoints reject requests missing an
   `anthropic-version: 2023-06-01` header (the `/api/organizations/...`
   endpoints never needed one) — added, scoped to just these two calls.
 - Session title came back empty — the metadata response can be wrapped
   under a `response_shape` key rather than flat; now falls back to that.
+- Bare `[tool use: X]` / `[tool result]` placeholders judged too terse —
+  replaced with tool name + condensed args (preferred keys like
+  `file_path`/`command`/`query`, truncated) and condensed/truncated result
+  text (e.g. `[tool: Read] file_path: /root/.claude/uploads/.../x.md` and
+  `[tool result — error] File content (899.3KB) exceeds maximum allowed
+  size...`) — confirmed working in a second live payload.
 
 **Still open for 8a:**
 - [ ] Spot-check a session with a large tool output (long command run, big
       file read) doesn't silently break the send
 - [ ] Confirm the 200-event-limit caveat is acceptable, or decide pagination
       is needed sooner
-- [ ] Consider (not yet decided — ask if it matters) whether tool_use/
-      tool_result placeholders are too terse for real use, vs. showing tool
-      name + condensed args/result
 
 **8b (Claude Cowork) — still fully open.** No live data captured yet for
 Cowork. Needs the same two-step investigation (API shape + header DOM) as
