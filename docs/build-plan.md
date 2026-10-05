@@ -333,34 +333,47 @@ send-to-n8n only.
   file contents and command output from your own machine, so what you're
   sending to the webhook is a superset of a normal chat export.
 
-**Unavoidable investigation step (same method used for every other
-extractor in this project):** the same-origin API that backs these pages is
-undocumented. Need to do, together with you, on one real Code session and
-one real Cowork session:
-1. Open the session page, inspect Network tab for the same-origin request(s)
-   that load the transcript (likely something adjacent to
-   `/api/organizations/{org}/...`, but the exact path and whether it's one
-   request or several — e.g. metadata + a paginated event stream — is
-   unconfirmed).
-2. Confirm response JSON shape: how tool calls, tool results, and file diffs
-   are represented, and whether there's anything in there (auth tokens,
-   internal IDs) that shouldn't be forwarded to a third-party webhook as-is.
-3. Confirm header/anchor selector for button placement on each page type.
+**8a status: API confirmed, extraction implemented.** The same-origin API
+was confirmed via live Network-tab capture (two requests, against a real
+Code session):
+- `GET /v1/code/sessions/{id}` → session metadata (title, model, git repo,
+  tags, system prompt) — used for the export's title.
+- `GET /v1/code/sessions/{id}/events?limit=200&sort_order=desc` → flat event
+  log (`control_request`, `system`, `assistant`, `user`, `result`, etc. —
+  not a nested conversation object like regular chats). Each `user`/
+  `assistant` event's `payload.message.content` is either a plain string
+  (real human input) or a content-block array (`text`, `thinking`,
+  `tool_use`, `tool_result`) — close to Claude's own Messages API shape.
 
-**Sub-phases:** 8a Claude Code sessions, 8b Claude Cowork sessions — separate
-investigation + sign-off for each, since they're different products likely
-on different endpoints with different transcript shapes.
+`extractCodeSession(sessionId)` (in `src/extractors/claude.js`) fetches
+both, sorts events by `sequence_num` for chronological order, keeps only
+`user`/`assistant` events, and flattens content blocks the same way
+`extractChat()` already does (text kept, tool_use/tool_result collapsed to
+short placeholders, thinking dropped) — reusing `buildMarkdown()` by
+normalizing role to `human`/`assistant`. Logic unit-tested against sample
+events mirroring the real captured shape (chronological ordering,
+thinking-only turns dropped, tool_use/tool_result rendered) — not yet
+tested against a live page in a real browser.
 
-**Testing checklist (per sub-phase):**
-- [ ] Extraction returns correct, complete turn sequence for a real session
-      (console test) — including tool calls, not just text turns
-- [ ] "Send to n8n" button appears on a real session page, doesn't appear on
-      the Code/Cowork landing/list pages
-- [ ] Markdown export is readable (tool calls rendered sensibly, not a wall
-      of raw JSON)
-- [ ] Send succeeds end-to-end to a test webhook, JSON and Markdown
-- [ ] Spot-check a session with large tool output (e.g. a long command run)
-      doesn't silently truncate or crash the send
+**Known limitation (8a):** fetches one page (200 events) — a session with
+more history than that only exports its most recent 200. Pagination is a
+follow-up if this turns out to matter.
+
+**8a remaining before sign-off (needs you, live in a browser):**
+- [ ] Button: confirm `button[aria-label^="More options for"]:not([data-row-action])`
+      (already wired, matched real DOM in the earlier capture) actually
+      anchors correctly end-to-end
+- [ ] Click "Send to n8n" on a real Code session, confirm payload (JSON +
+      Markdown) looks right and isn't missing/duplicating turns
+- [ ] Spot-check a session with a large tool output (long command run, big
+      file read) doesn't silently break the send
+- [ ] Confirm the 200-event-limit caveat is acceptable, or decide pagination
+      is needed sooner
+
+**8b (Claude Cowork) — still fully open.** No live data captured yet for
+Cowork. Needs the same two-step investigation (API shape + header DOM) as
+8a, on a real Cowork session, before any extraction code gets written —
+don't assume it shares Code's endpoint shape.
 - [ ] No console errors
 
 **Sign-off gate:** 8a (Code) signed off and tested before starting 8b
