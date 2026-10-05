@@ -115,11 +115,12 @@
     var controlWidth = control.offsetWidth || 310;
 
     if (composerRect) {
-      // Bottom-align the control to the input box's bottom edge, growing
-      // upward — so it never drops below the input.
-      left = composerRect.right + 12;
-      top = composerRect.bottom - controlHeight;
-      left = Math.min(left, window.innerWidth - controlWidth - 12);
+      // Sit right above the input box, right-aligned to it — the control
+      // is wide enough now (3 dropdowns) that squeezing it in beside the
+      // input ran out of room whenever the composer spans most of the
+      // viewport width, overlapping the input's own mic/send icons.
+      left = Math.max(composerRect.right - controlWidth, composerRect.left);
+      top = composerRect.top - controlHeight - 8;
     } else {
       // No composer found (e.g. a ChatGPT Project overview page with no
       // single chat input to anchor to) — fall back to bottom-right
