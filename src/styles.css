@@ -9,6 +9,8 @@
   --cod-n8n-accent: #ea4b71;
   --cod-n8n-accent-bg: rgba(234, 75, 113, 0.1);
   --cod-success: #16a34a;
+  --cod-accent: #bcef37;
+  --cod-accent-bg: rgba(188, 239, 55, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,7 +46,7 @@ html.dark {
   line-height: 1;
   color: var(--cod-text);
   background: var(--cod-bg);
-  border: 1px solid var(--cod-border);
+  border: 1px solid var(--cod-accent);
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
@@ -53,7 +55,7 @@ html.dark {
 }
 
 .cod-action-btn:hover {
-  background: var(--cod-bg-hover);
+  background: var(--cod-accent-bg);
   box-shadow: 0 1px 3px var(--cod-shadow);
 }
 
@@ -136,7 +138,7 @@ html.dark {
   font-size: 12px;
   color: var(--cod-text);
   background-color: var(--cod-bg);
-  border: 1px solid var(--cod-border);
+  border: 1px solid var(--cod-accent);
   border-radius: 6px;
   padding: 0 20px 0 6px;
   cursor: pointer;
