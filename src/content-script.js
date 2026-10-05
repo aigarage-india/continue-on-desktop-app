@@ -112,18 +112,19 @@
     var left, top;
     var composerRect = findChatGPTComposerRect();
     var controlHeight = control.offsetHeight || 32;
+    var controlWidth = control.offsetWidth || 310;
 
     if (composerRect) {
       // Bottom-align the control to the input box's bottom edge, growing
       // upward — so it never drops below the input.
       left = composerRect.right + 12;
       top = composerRect.bottom - controlHeight;
-      left = Math.min(left, window.innerWidth - 230);
+      left = Math.min(left, window.innerWidth - controlWidth - 12);
     } else {
       // No composer found (e.g. a ChatGPT Project overview page with no
       // single chat input to anchor to) — fall back to bottom-right
       // instead of guessing a top-left spot that can land on the sidebar.
-      left = window.innerWidth - 240;
+      left = window.innerWidth - controlWidth - 24;
       top = window.innerHeight - controlHeight - 24;
     }
 
