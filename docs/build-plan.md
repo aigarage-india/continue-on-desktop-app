@@ -31,6 +31,13 @@ Build a Manifest V3 Chrome extension that adds a "Continue on Desktop App" butto
 | 11 | Live DOM testing + selector hardening | Phase 4 | Polish |
 | 12 | GitHub Action: zip + publish to Chrome Web Store on tag | Phase 5 | Distribution |
 | 13 | Store listing metadata (description, screenshots placeholders) | Phase 5 | Distribution |
+| 14 | n8n extraction + send core (shipped) | Phase 6 | Feature |
+| 15 | n8n hardening: local storage, masking, auth header (shipped) | Phase 7 | Feature |
+| 16 | Perplexity extraction + send-to-n8n | Phase 8a | Feature |
+| 17 | DeepSeek extraction + send-to-n8n | Phase 8b | Feature |
+| 18 | Gemini extraction + send-to-n8n | Phase 8c | Feature |
+| 19 | Batch send / download fallback / send history (deferred) | Phase 9 | Optional |
+| 20 | Claude Cowork / Code session export (deferred, needs scoping) | Phase 10 | Optional |
 
 ---
 
@@ -245,6 +252,151 @@ git push origin v1.0.0
 - [ ] Verify published extension installs and works from the store
 
 **Sign-off gate:** CI/CD pipeline verified end-to-end. Extension auto-publishes on tagged releases. Ready for production use.
+
+---
+
+## Phases 6-7: n8n Export (completed, shipped)
+
+Built conversationally (not originally written to this file) across several
+sessions; recorded here for continuity before extending the plan further.
+
+- **Phase 6 — Extraction + send-to-n8n core:** `src/extractors/claude.js`,
+  `src/extractors/chatgpt.js` (same-origin internal API extraction for chats
+  and Claude Project docs), `src/background-sender.js` (POST to configured
+  webhook, 10s timeout, one retry on network-level failure only), "Send to
+  n8n" button + JSON/Markdown format picker in content script, popup, and a
+  full-tab Options page (`options/`).
+- **Phase 7 — Hardening + polish:** branding/spacing polish; README privacy
+  accuracy; webhook URL moved to `chrome.storage.local` (not `sync`, since it
+  behaves like a secret) with a one-time migration in `src/background.js`;
+  masked input + show/hide toggle; non-blocking warning on plain `http://`
+  URLs; optional auth-header (name + value) sent on every webhook request,
+  matching n8n's built-in Header Auth credential — opt-in, blank by default.
+
+**Status:** shipped and pushed to `claude/clever-davinci-iy1j54`. No open
+items.
+
+---
+
+## Phase 8: Additional chat sites — Gemini, Perplexity, DeepSeek
+
+**Goal:** Extend the existing "Send to n8n" extraction pattern to
+gemini.google.com, perplexity.ai, and chat.deepseek.com. Desktop deep-link
+button is **not** in scope for any of the three this phase — see research
+below.
+
+**Research findings (desktop deep-link protocols):**
+
+| Site | Desktop app exists? | Deep-link-to-specific-conversation confirmed? |
+|------|---------------------|------------------------------------------------|
+| Gemini | Yes (native Mac + Windows app, 2026) | No — no documented `gemini://`-style protocol handler for opening a specific conversation. Unconfirmed either way; would need live testing against the installed app. |
+| Perplexity | Yes (Mac app) | Only a generic `perplexity-app://search?q=...` scheme for *new* searches has public documentation — nothing showing it can open an *existing* thread by ID. |
+| DeepSeek | No real native app — official "desktop" option is a browser-wrapper shortcut, not an installed app with its own protocol handler | N/A |
+
+Conclusion: ship extraction-only for all three in Phase 8. If a user later
+confirms (via testing) that Gemini's or Perplexity's installed app actually
+opens a specific conversation from a URL, add the Desktop button for that
+site as a small follow-up — don't block Phase 8 on it.
+
+**Files to create/modify:**
+- `src/extractors/gemini.js`, `src/extractors/perplexity.js`,
+  `src/extractors/deepseek.js` — new, one per site, following the shape of
+  `src/extractors/claude.js` / `src/extractors/chatgpt.js` (normalized
+  `{source, type, id, url, title, exported_at, messages, markdown}` payload).
+- `src/utils.js` — extend `ContinueOnDesktop.getSiteInfo()` with URL patterns
+  for each site's conversation URL (exact pattern TBD per site during
+  investigation — e.g. Gemini's `gemini.google.com/app/{id}`-style path,
+  Perplexity's `perplexity.ai/search/{slug}-{id}`, DeepSeek's
+  `chat.deepseek.com/a/chat/s/{id}`); patterns need confirming against live
+  URLs, not guessed.
+- `manifest.json` — add `host_permissions` + a `content_scripts` block per
+  new site (mirroring the existing claude.ai/chatgpt.com blocks).
+- `src/content-script.js` — extend `LANDMARK_SELECTORS` with a header anchor
+  per site (fall back to floating if none found, same as today).
+- `src/background-sender.js` — no change (site-agnostic already).
+
+**Unavoidable investigation step (same method used for claude.ai/chatgpt.com):**
+each site's internal conversation API is undocumented. For each site this
+phase needs, together with you:
+1. Open a real conversation, inspect Network tab for the same-origin request
+   that fetches message history (same technique that found
+   `/api/organizations/{org}/chat_conversations/{id}` for Claude and
+   `/backend-api/conversation/{id}` for ChatGPT).
+2. Confirm response JSON shape (message roles, text fields, timestamps).
+3. Confirm the header/anchor selector for button placement.
+
+**Suggested order (smallest unknown first):** Perplexity → DeepSeek → Gemini,
+based on how actively each site changes its frontend (more churn = more
+selector risk) — open to reordering based on which you use most.
+
+**Testing checklist (per site):**
+- [ ] Extraction returns correct messages for a multi-turn chat (console test)
+- [ ] "Send to n8n" button appears (anchored or floating) on a real
+      conversation page
+- [ ] Button does NOT appear on non-conversation pages (homepage, settings)
+- [ ] Send succeeds end-to-end to a test webhook, in both JSON and Markdown
+- [ ] SPA navigation (switching conversations) updates/re-injects correctly
+- [ ] Dark mode styling correct
+- [ ] No console errors
+
+**Sign-off gate:** each site signed off individually as it's completed (this
+phase is naturally three sub-batches — 8a Perplexity, 8b DeepSeek, 8c
+Gemini); don't start the next site until the current one is tested +
+approved.
+
+---
+
+## Phase 9 (renumbered from the old, deferred "Phase 8"): Batch send, download fallback, send history
+
+Previously discussed informally, never built. Kept optional/deferred —
+revisit only if you ask for it.
+
+| Item | What it means |
+|------|----------------|
+| Batch send | Select multiple chats (e.g. from a list view) and send all to n8n in one action, instead of opening each one individually. |
+| Local download fallback | If no webhook is configured, or a send fails, offer "save as file" (same JSON/Markdown payload) instead of just showing an error toast and losing the data. |
+| Send history | A small local log (`chrome.storage.local`) of past sends — timestamp, chat title, success/fail, status — so you can check what was already sent without digging through n8n's own execution log. |
+
+**Status:** not scheduled. No files/testing checklist written yet — this
+gets fully planned if/when you decide to pick it up.
+
+---
+
+## Phase 10 (new, separate from Phase 8): Claude Cowork & Claude Code session export
+
+**Raised by:** "what about claude cowork & code??" — referring to
+`claude.ai/cowork/{id}` and `claude.ai/code/{id}` session URLs.
+
+**Why this is its own phase, not folded into Phase 8:** the content script
+already loads on these pages today (manifest matches `https://claude.ai/*`
+broadly), but `ContinueOnDesktop.getSiteInfo()` in `src/utils.js` only
+recognizes `/chat/{id}` and `/project/{id}` — so no buttons currently appear
+on Cowork/Code pages, by design, not by bug. Adding them is a real scope
+expansion:
+- **Different transcript shape.** A Cowork or Code session isn't a plain
+  message list — it includes tool calls, file diffs, command output,
+  possibly multi-agent sub-turns. The existing `{messages: [...]}` /
+  Markdown-flattening logic in `src/extractors/claude.js` would need
+  meaningfully different handling, not a copy-paste.
+- **API shape unconfirmed.** Whether claude.ai exposes a same-origin
+  transcript-fetch endpoint for Cowork/Code sessions (analogous to
+  `/api/organizations/{org}/chat_conversations/{id}` for regular chats) is
+  unknown without live inspection — same investigation step as Phase 8,
+  done against these specific session types.
+- **No desktop deep-link angle at all** — Code sessions here are cloud/web
+  sessions of the Claude Code CLI product, not something with a registered
+  protocol handler; Cowork is browser-only. So this phase, if built, would
+  be extraction + send-to-n8n only, same as Phase 8's conclusion.
+
+**Recommendation:** don't block Phase 8 on this. Treat as a candidate
+follow-up — worth it if you'd actually use "export my Cowork/Code session to
+n8n" (e.g. to log or summarize agent runs), lower priority if it's just
+"should we," since it's a narrower use case (your own agent sessions) vs.
+Phase 8's three major chat products.
+
+**Status:** not started, not yet scoped into a real plan — needs a decision
+from you on whether it's worth the investigation effort before writing a
+proper phase (files, testing checklist, sign-off gate) the way Phase 8 has.
 
 ---
 
