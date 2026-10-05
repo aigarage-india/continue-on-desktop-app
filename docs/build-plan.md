@@ -39,6 +39,7 @@ Build a Manifest V3 Chrome extension that adds a "Continue on Desktop App" butto
 | 19 | DeepSeek extraction + send-to-n8n | Phase 9b | Feature |
 | 20 | Gemini extraction + send-to-n8n | Phase 9c | Feature |
 | 21 | Batch send / download fallback / send history (deferred) | Phase 10 | Optional |
+| 22 | ChatGPT Projects export | Phase 11 | Feature |
 
 ---
 
@@ -477,6 +478,41 @@ revisit only if you ask for it.
 
 **Status:** not scheduled. No files/testing checklist written yet — this
 gets fully planned if/when you decide to pick it up.
+
+---
+
+## Phase 11: ChatGPT Projects export
+
+A ChatGPT Project overview page (`chatgpt.com/g/g-p-{id}/project`) lists
+the chats and files inside a project — it's not a single chat, so the
+current `/c/{id}`-only URL pattern correctly doesn't match it and no
+button appears there today. Goal: add project-level export analogous to
+Claude's existing project export (`extractProject()` in `claude.js`) —
+send the project's files/instructions, not every chat inside it.
+
+**Status: investigation not started — unlike 8b, this one can't reuse an
+already-confirmed API.** ChatGPT's project ("gizmo") backend is unrelated
+to claude.ai's, so needs its own live capture, same two-step process as
+every other site added so far:
+
+1. **URL pattern** — confirm the exact URL shape (`g-p-{id}` id format,
+   whether `/project` is the only suffix or there are variants).
+2. **API shape** — open the project page, Network tab → Fetch/XHR, find
+   the request(s) for project metadata + files/instructions (likely
+   something under `/backend-api/gizmos/g-p-{id}` or `/backend-api/.../projects/{id}`,
+   mirroring how `extractChat()` already calls `/backend-api/conversation/{id}`
+   with a bearer token from `/api/auth/session`). Capture full URL,
+   headers, and response JSON.
+3. **DOM anchor** — inspect the project page's header/toolbar area,
+   capture `outerHTML`, so a button-anchor selector can be picked (or
+   fall back to the floating button like ChatGPT chats already do).
+
+Nothing gets coded until that capture is in hand — don't assume it shares
+either Claude's project shape or ChatGPT's own chat (`mapping`/node-tree)
+shape.
+
+**Sign-off gate:** live-tested on a real project page before calling this
+phase done.
 
 ---
 
