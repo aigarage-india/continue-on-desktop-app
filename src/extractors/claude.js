@@ -6,14 +6,18 @@ var ClaudeExtractor = (function () {
   // cookie — nothing is sent to any third-party or AI Garage server here.
   // These endpoints are not publicly documented and can change without notice.
 
-  function fetchJson(url) {
-    return fetch(url, { credentials: "include" }).then(function (res) {
+  function fetchJson(url, headers) {
+    return fetch(url, { credentials: "include", headers: headers || {} }).then(function (res) {
       if (!res.ok) {
         throw new Error("claude.ai request failed: " + url + " (" + res.status + ")");
       }
       return res.json();
     });
   }
+
+  // The /v1/code/... session endpoints (unlike /api/organizations/...)
+  // reject requests that don't carry this header.
+  var CODE_API_HEADERS = { "anthropic-version": "2023-06-01" };
 
   function getActiveOrgUuid() {
     return fetchJson("/api/organizations").then(function (orgs) {
@@ -169,8 +173,8 @@ var ClaudeExtractor = (function () {
   function extractCodeSession(sessionId) {
     var base = "/v1/code/sessions/" + sessionId;
     return Promise.all([
-      fetchJson(base),
-      fetchJson(base + "/events?limit=200&sort_order=desc"),
+      fetchJson(base, CODE_API_HEADERS),
+      fetchJson(base + "/events?limit=200&sort_order=desc", CODE_API_HEADERS),
     ]).then(function (results) {
       var session = results[0];
       var rawEvents = (results[1] && results[1].data) || [];
