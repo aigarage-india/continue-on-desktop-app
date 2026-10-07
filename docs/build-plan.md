@@ -559,11 +559,13 @@ need to special-case "no webhook configured" separately.
 **Checklist:**
 - [x] Confirm success path is unaffected (no stray download on a
       successful send) — confirmed via n8n execution logs (94319, 95313)
-- [ ] Trigger a real failure (e.g. temporarily wrong auth header against
-      the test n8n workflow) and confirm a correctly-named `.json`/`.md`
-      file downloads with the right content
-- [ ] Chrome's "multiple downloads" permission prompt (if it appears)
-      doesn't block the toast/UI reset
+- [x] Trigger a real failure (wrong auth header against the test n8n
+      workflow) and confirm a correctly-named `.json`/`.md` file
+      downloads with the right content — confirmed
+- [x] Chrome's "multiple downloads" permission prompt didn't block the
+      toast/UI reset
+
+**Sign-off: 10a and 10b both done.**
 
 **Unrelated finding during testing (not a bug in this phase):** one
 specific Claude conversation 404'd on `ClaudeExtractor.extractChat()`
