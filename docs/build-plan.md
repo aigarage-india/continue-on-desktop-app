@@ -33,13 +33,15 @@ Build a Manifest V3 Chrome extension that adds a "Continue on Desktop App" butto
 | 13 | Store listing metadata (description, screenshots placeholders) | Phase 5 | Distribution |
 | 14 | n8n extraction + send core (shipped) | Phase 6 | Feature |
 | 15 | n8n hardening: local storage, masking, auth header (shipped) | Phase 7 | Feature |
-| 16 | Claude Code session export + send-to-n8n | Phase 8a | Feature |
-| 17 | Claude Cowork session export + send-to-n8n | Phase 8b | Feature |
+| 16 | Claude Code session export + send-to-n8n (shipped) | Phase 8a | Feature |
+| 17 | Claude Cowork session export + send-to-n8n (shipped) | Phase 8b | Feature |
 | 18 | Perplexity extraction + send-to-n8n | Phase 9a | Feature |
 | 19 | DeepSeek extraction + send-to-n8n | Phase 9b | Feature |
 | 20 | Gemini extraction + send-to-n8n | Phase 9c | Feature |
-| 21 | Batch send / download fallback / send history (deferred) | Phase 10 | Optional |
-| 22 | ChatGPT Projects export | Phase 11 | Feature |
+| 21 | "Save as" action (clipboard, JSON/MD) | Phase 10a | Feature |
+| 22 | Local download fallback on send failure | Phase 10b | Feature |
+| 23 | Batch send / send history (deferred) | Phase 10c | Optional |
+| 24 | ChatGPT Projects export (shipped) | Phase 11 | Feature |
 
 ---
 
@@ -469,15 +471,95 @@ approved.
 
 ---
 
-## Phase 10 (reordered — was Phase 9): Batch send, download fallback, send history
+## Phase 10: Save as (clipboard) + download fallback, batch send / history deferred
 
-Previously discussed informally, never built. Kept optional/deferred —
-revisit only if you ask for it.
+Split from the original "Batch send, download fallback, send history"
+grouping. 10a and 10b are scoped now; batch send and send history
+(10c) stay deferred as originally discussed — revisit only if asked.
+
+### 10a — "Save as" action, Clipboard destination (JSON/MD)
+
+Extends the dropdown control with a third action alongside "Open in" /
+"Send to": **"Save as" → "Clipboard" → JSON/MD**, copying the extracted
+payload straight to the clipboard. No webhook or n8n config needed — this
+works purely locally, so it's available on every page with a detected
+conversation, regardless of whether n8n export is enabled or a deep link
+exists. That's a real behavior change worth calling out: pages that
+currently show no control at all (Code/Cowork/ChatGPT Project sessions
+when n8n export is off) will start showing one, with just "Save as"
+available.
+
+**`src/content-script.js` changes:**
+- `getAvailableActions(info)`: always include `"save"` (the function is
+  only called once a conversation is already detected).
+- `buildControlElement`: action dropdown gains a `"save"` → "Save as"
+  option.
+- `populateDestOptions`: new branch for `action === "save"` →
+  `"clipboard"` → "Clipboard" + disabled "More destinations soon"
+  (matches the existing n8n-destination placeholder pattern).
+- `destSelect` change handler: `save` + `clipboard` → populate the format
+  dropdown with the same JSON/MD options `send` already uses (shared
+  `populateFormatOptions`).
+- `formatSelect` change handler: now branches on `actionSelect.value` —
+  `"send"` → existing `handleSendToN8n`, `"save"` → new `handleSaveAs`.
+- Refactor extraction out of `extractAndSend` into a standalone
+  `extractCurrentPayload(callback)` (same site/type branching, just
+  stops short of the webhook send) — `extractAndSend` becomes a thin
+  wrapper that extracts then sends. `handleSaveAs` reuses
+  `extractCurrentPayload` directly, builds the text
+  (`payload.markdown` for MD, `JSON.stringify(payload, null, 2)` for
+  JSON), and `navigator.clipboard.writeText()`s it — same API already
+  used for the deep-link-copy fallback, no new permission needed.
+- Toast on success/failure, same color-coded pattern as the n8n send.
+
+**Checklist:**
+- [ ] "Save as" shows up on every supported page type (chat, project,
+      Code, Cowork, ChatGPT project), independent of n8n settings
+- [ ] Clipboard content matches what a JSON/MD n8n send would have sent
+- [ ] Sticky-selection behavior (action/destination stay picked after
+      firing) still works correctly now that there are two terminal
+      format-dropdown destinations (n8n vs clipboard) sharing one dropdown
+
+### 10b — Local download fallback when "Send to n8n" fails
+
+Right now a failed send just shows an error toast and the payload is
+gone — nothing to retry with except clicking through the whole flow
+again. On failure, auto-download the same payload as a local file
+(`.json` or `.md` matching the format that was attempted), so nothing is
+lost.
+
+Every path that reaches a real send failure already implies n8n *was*
+configured (the "Send to" action only appears when `n8nReady` is true),
+so every failure here is a genuine one — network error, timeout, 401/403
+auth mismatch, 404 wrong path, 5xx — worth a backup file every time, no
+need to special-case "no webhook configured" separately.
+
+**`src/content-script.js` changes:**
+- `handleSendToN8n` restructured to capture the extracted `payload` (via
+  `extractCurrentPayload`, same helper 10a introduces) before sending, so
+  it's still available in the failure branch.
+- New `downloadPayloadAsFile(payload, format)`: builds a `Blob` (MIME
+  `application/json` or `text/markdown`), `URL.createObjectURL`, a
+  programmatic `<a download>` click, then `revokeObjectURL` shortly
+  after — pure client-side, no `downloads` permission or manifest change
+  needed. Filename derived from the payload's title/name, slugified.
+- On send failure: call `downloadPayloadAsFile`, then show the existing
+  error toast with ", downloaded a backup copy" appended.
+
+**Checklist:**
+- [ ] Trigger a real failure (e.g. temporarily wrong auth header against
+      the test n8n workflow) and confirm a correctly-named `.json`/`.md`
+      file downloads with the right content
+- [ ] Confirm success path is unaffected (no stray download on a
+      successful send)
+- [ ] Chrome's "multiple downloads" permission prompt (if it appears)
+      doesn't block the toast/UI reset
+
+### 10c — Batch send, send history (deferred)
 
 | Item | What it means |
 |------|----------------|
 | Batch send | Select multiple chats (e.g. from a list view) and send all to n8n in one action, instead of opening each one individually. |
-| Local download fallback | If no webhook is configured, or a send fails, offer "save as file" (same JSON/Markdown payload) instead of just showing an error toast and losing the data. |
 | Send history | A small local log (`chrome.storage.local`) of past sends — timestamp, chat title, success/fail, status — so you can check what was already sent without digging through n8n's own execution log. |
 
 **Status:** not scheduled. No files/testing checklist written yet — this
