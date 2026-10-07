@@ -479,6 +479,8 @@ grouping. 10a and 10b are scoped now; batch send and send history
 
 ### 10a — "Save as" action, Clipboard destination (JSON/MD)
 
+**Status: implemented — not yet live-tested.**
+
 Extends the dropdown control with a third action alongside "Open in" /
 "Send to": **"Save as" → "Clipboard" → JSON/MD**, copying the extracted
 payload straight to the clipboard. No webhook or n8n config needed — this
@@ -521,6 +523,8 @@ available.
       format-dropdown destinations (n8n vs clipboard) sharing one dropdown
 
 ### 10b — Local download fallback when "Send to n8n" fails
+
+**Status: implemented — not yet live-tested.**
 
 Right now a failed send just shows an error toast and the payload is
 gone — nothing to retry with except clicking through the whole flow

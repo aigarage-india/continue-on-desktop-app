@@ -186,6 +186,9 @@
     var actions = [];
     if (info.deepLink) actions.push("open");
     if (n8nReady) actions.push("send");
+    // Always available — purely local (clipboard), no webhook or deep
+    // link needed, so it works even when nothing else is configured.
+    actions.push("save");
     return actions;
   }
 
@@ -228,6 +231,9 @@
     } else if (action === "send") {
       appendOption(destSelect, "n8n", "n8n");
       appendDisabledOption(destSelect, "More destinations soon");
+    } else if (action === "save") {
+      appendOption(destSelect, "clipboard", "Clipboard");
+      appendDisabledOption(destSelect, "More destinations soon");
     }
   }
 
@@ -266,26 +272,90 @@
     }, PROTOCOL_TIMEOUT_MS);
   }
 
+  // Shared by every terminal-dropdown handler (send, save): re-enable
+  // action/destination and reset just the format dropdown back to its
+  // placeholder, same sticky-selection behavior for both.
+  function finishTerminalSelects(wrap, formatSelect) {
+    wrap.classList.remove("cod-loading");
+    var selects = wrap.querySelectorAll("select");
+    selects[0].disabled = false;
+    selects[1].disabled = false;
+    populateFormatOptions(formatSelect);
+    formatSelect.disabled = false;
+  }
+
+  function downloadPayloadAsFile(payload, format) {
+    var isMarkdown = format === "markdown";
+    var text = isMarkdown ? (payload.markdown || "") : JSON.stringify(payload, null, 2);
+    var mime = isMarkdown ? "text/markdown" : "application/json";
+    var ext = isMarkdown ? "md" : "json";
+    var rawName = payload.title || payload.name || "conversation";
+    var slug = rawName.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "conversation";
+
+    var blob = new Blob([text], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = slug + "." + ext;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
   function handleSendToN8n(wrap, formatSelect) {
     if (n8nSending) return;
     n8nSending = true;
+    var format = formatSelect.value;
     setControlBusy(wrap);
 
-    extractAndSend(function (result) {
-      n8nSending = false;
-      wrap.classList.remove("cod-loading");
-      var selects = wrap.querySelectorAll("select");
-      selects[0].disabled = false;
-      selects[1].disabled = false;
-      populateFormatOptions(formatSelect);
-      formatSelect.disabled = false;
-
-      if (result && result.ok) {
-        showToast("Sent to n8n.", "success");
-      } else {
-        var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
-        showToast("Send to n8n failed: " + errMsg, "error");
+    extractCurrentPayload(function (extractResult) {
+      if (!extractResult.ok) {
+        n8nSending = false;
+        finishTerminalSelects(wrap, formatSelect);
+        showToast("Send to n8n failed: " + extractResult.error, "error");
+        return;
       }
+
+      var payload = extractResult.payload;
+      chrome.runtime.sendMessage({ type: "SEND_TO_N8N", payload: payload }, function (result) {
+        n8nSending = false;
+        finishTerminalSelects(wrap, formatSelect);
+
+        if (result && result.ok) {
+          showToast("Sent to n8n.", "success");
+        } else {
+          var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
+          downloadPayloadAsFile(payload, format);
+          showToast("Send to n8n failed: " + errMsg + " — downloaded a backup copy.", "error");
+        }
+      });
+    });
+  }
+
+  function handleSaveAs(wrap, formatSelect) {
+    var format = formatSelect.value;
+    setControlBusy(wrap);
+
+    extractCurrentPayload(function (result) {
+      finishTerminalSelects(wrap, formatSelect);
+
+      if (!result.ok) {
+        showToast("Save failed: " + result.error, "error");
+        return;
+      }
+
+      var text = format === "markdown"
+        ? (result.payload.markdown || "")
+        : JSON.stringify(result.payload, null, 2);
+
+      navigator.clipboard.writeText(text).then(function () {
+        showToast("Copied to clipboard (" + (format === "markdown" ? "Markdown" : "JSON") + ").", "success");
+      }).catch(function () {
+        showToast("Couldn't copy to clipboard — your browser may have blocked it.", "error");
+      });
     });
   }
 
@@ -301,6 +371,7 @@
     appendPlaceholderOption(actionSelect, "Action");
     if (actions.indexOf("open") !== -1) appendOption(actionSelect, "open", "Open in");
     if (actions.indexOf("send") !== -1) appendOption(actionSelect, "send", "Send to");
+    if (actions.indexOf("save") !== -1) appendOption(actionSelect, "save", "Save as");
 
     var destSelect = document.createElement("select");
     destSelect.className = "cod-select";
@@ -353,7 +424,7 @@
         return;
       }
 
-      if (action === "send" && destination === "n8n") {
+      if ((action === "send" && destination === "n8n") || (action === "save" && destination === "clipboard")) {
         populateFormatOptions(formatSelect);
         formatSelect.disabled = false;
       }
@@ -363,6 +434,12 @@
       e.stopPropagation();
       var format = formatSelect.value;
       if (!format) return;
+
+      if (actionSelect.value === "save") {
+        handleSaveAs(wrap, formatSelect);
+        return;
+      }
+
       chrome.storage.sync.set({ n8nExportFormat: format });
       handleSendToN8n(wrap, formatSelect);
     });
@@ -392,7 +469,7 @@
     }
   }
 
-  function extractAndSend(callback) {
+  function extractCurrentPayload(callback) {
     var info = ContinueOnDesktop.getSiteInfo(window.location.href);
     if (!info.site || !info.conversationId) {
       callback({ ok: false, error: "No conversation detected on this page." });
@@ -421,13 +498,21 @@
 
     extractPromise
       .then(function (payload) {
-        chrome.runtime.sendMessage({ type: "SEND_TO_N8N", payload: payload }, function (result) {
-          callback(result);
-        });
+        callback({ ok: true, payload: payload });
       })
       .catch(function (err) {
         callback({ ok: false, error: err.message || String(err) });
       });
+  }
+
+  function extractAndSend(callback) {
+    extractCurrentPayload(function (result) {
+      if (!result.ok) {
+        callback(result);
+        return;
+      }
+      chrome.runtime.sendMessage({ type: "SEND_TO_N8N", payload: result.payload }, callback);
+    });
   }
 
   chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
