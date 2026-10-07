@@ -188,7 +188,7 @@
     if (n8nReady) actions.push("send");
     // Always available — purely local (clipboard), no webhook or deep
     // link needed, so it works even when nothing else is configured.
-    actions.push("save");
+    actions.push("copy");
     return actions;
   }
 
@@ -231,7 +231,7 @@
     } else if (action === "send") {
       appendOption(destSelect, "n8n", "n8n");
       appendDisabledOption(destSelect, "More destinations soon");
-    } else if (action === "save") {
+    } else if (action === "copy") {
       appendOption(destSelect, "clipboard", "Clipboard");
       appendDisabledOption(destSelect, "More destinations soon");
     }
@@ -272,7 +272,7 @@
     }, PROTOCOL_TIMEOUT_MS);
   }
 
-  // Shared by every terminal-dropdown handler (send, save): re-enable
+  // Shared by every terminal-dropdown handler (send, copy): re-enable
   // action/destination and reset just the format dropdown back to its
   // placeholder, same sticky-selection behavior for both.
   function finishTerminalSelects(wrap, formatSelect) {
@@ -335,7 +335,7 @@
     });
   }
 
-  function handleSaveAs(wrap, formatSelect) {
+  function handleCopyAs(wrap, formatSelect) {
     var format = formatSelect.value;
     setControlBusy(wrap);
 
@@ -343,7 +343,7 @@
       finishTerminalSelects(wrap, formatSelect);
 
       if (!result.ok) {
-        showToast("Save failed: " + result.error, "error");
+        showToast("Copy failed: " + result.error, "error");
         return;
       }
 
@@ -371,7 +371,7 @@
     appendPlaceholderOption(actionSelect, "Action");
     if (actions.indexOf("open") !== -1) appendOption(actionSelect, "open", "Open in");
     if (actions.indexOf("send") !== -1) appendOption(actionSelect, "send", "Send to");
-    if (actions.indexOf("save") !== -1) appendOption(actionSelect, "save", "Save as");
+    if (actions.indexOf("copy") !== -1) appendOption(actionSelect, "copy", "Copy as");
 
     var destSelect = document.createElement("select");
     destSelect.className = "cod-select";
@@ -385,20 +385,19 @@
     formatSelect.disabled = true;
     appendPlaceholderOption(formatSelect, "Format");
 
-    // "Send to n8n" is the default on every load when it's available at
-    // all — action and destination start pre-picked. Format stays at its
-    // placeholder: re-picking an already-selected <select> value fires no
-    // change event in any browser, so the one dropdown that actually
-    // fires the send can never be pre-filled, or there'd be no way to
-    // trigger it without first picking something else and back again.
-    if (actions.indexOf("send") !== -1) {
-      actionSelect.value = "send";
-      populateDestOptions(destSelect, "send");
-      destSelect.value = "n8n";
-      destSelect.disabled = false;
-      populateFormatOptions(formatSelect);
-      formatSelect.disabled = false;
-    }
+    // "Copy as" -> "Clipboard" is the default on every load — it's always
+    // available (no n8n config needed), so action and destination start
+    // pre-picked. Format stays at its placeholder: re-picking an
+    // already-selected <select> value fires no change event in any
+    // browser, so the one dropdown that actually fires the action can
+    // never be pre-filled, or there'd be no way to trigger it without
+    // first picking something else and back again.
+    actionSelect.value = "copy";
+    populateDestOptions(destSelect, "copy");
+    destSelect.value = "clipboard";
+    destSelect.disabled = false;
+    populateFormatOptions(formatSelect);
+    formatSelect.disabled = false;
 
     [actionSelect, destSelect, formatSelect].forEach(function (sel) {
       sel.addEventListener("click", function (e) {
@@ -424,7 +423,7 @@
         return;
       }
 
-      if ((action === "send" && destination === "n8n") || (action === "save" && destination === "clipboard")) {
+      if ((action === "send" && destination === "n8n") || (action === "copy" && destination === "clipboard")) {
         populateFormatOptions(formatSelect);
         formatSelect.disabled = false;
       }
@@ -435,8 +434,8 @@
       var format = formatSelect.value;
       if (!format) return;
 
-      if (actionSelect.value === "save") {
-        handleSaveAs(wrap, formatSelect);
+      if (actionSelect.value === "copy") {
+        handleCopyAs(wrap, formatSelect);
         return;
       }
 

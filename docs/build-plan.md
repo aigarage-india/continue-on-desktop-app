@@ -38,7 +38,7 @@ Build a Manifest V3 Chrome extension that adds a "Continue on Desktop App" butto
 | 18 | Perplexity extraction + send-to-n8n | Phase 9a | Feature |
 | 19 | DeepSeek extraction + send-to-n8n | Phase 9b | Feature |
 | 20 | Gemini extraction + send-to-n8n | Phase 9c | Feature |
-| 21 | "Save as" action (clipboard, JSON/MD) | Phase 10a | Feature |
+| 21 | "Copy as" action (clipboard, JSON/MD) | Phase 10a | Feature |
 | 22 | Local download fallback on send failure | Phase 10b | Feature |
 | 23 | Batch send / send history (deferred) | Phase 10c | Optional |
 | 24 | ChatGPT Projects export (shipped) | Phase 11 | Feature |
@@ -471,15 +471,15 @@ approved.
 
 ---
 
-## Phase 10: Save as (clipboard) + download fallback, batch send / history deferred
+## Phase 10: Copy as (clipboard) + download fallback, batch send / history deferred
 
 Split from the original "Batch send, download fallback, send history"
 grouping. 10a and 10b are scoped now; batch send and send history
 (10c) stay deferred as originally discussed — revisit only if asked.
 
-### 10a — "Save as" action, Clipboard destination (JSON/MD)
+### 10a — "Copy as" action, Clipboard destination (JSON/MD)
 
-**Status: live-tested, working.** Confirmed on ChatGPT (Save as → Clipboard
+**Status: live-tested, working.** Confirmed on ChatGPT (Copy as → Clipboard
 → JSON copied a correct, complete payload) and via the shared
 `extractCurrentPayload` path exercised through Send to n8n on both
 ChatGPT and Claude (n8n execution logs show full, correct payloads). One
@@ -488,32 +488,36 @@ isolated, pre-existing oddity unrelated to this phase (see note at the
 end of 10b) — every other conversation tested extracted fine.
 
 Extends the dropdown control with a third action alongside "Open in" /
-"Send to": **"Save as" → "Clipboard" → JSON/MD**, copying the extracted
+"Send to": **"Copy as" → "Clipboard" → JSON/MD**, copying the extracted
 payload straight to the clipboard. No webhook or n8n config needed — this
 works purely locally, so it's available on every page with a detected
 conversation, regardless of whether n8n export is enabled or a deep link
 exists. That's a real behavior change worth calling out: pages that
 currently show no control at all (Code/Cowork/ChatGPT Project sessions
-when n8n export is off) will start showing one, with just "Save as"
+when n8n export is off) will start showing one, with just "Copy as"
 available.
 
 **`src/content-script.js` changes:**
-- `getAvailableActions(info)`: always include `"save"` (the function is
+- `getAvailableActions(info)`: always include `"copy"` (the function is
   only called once a conversation is already detected).
-- `buildControlElement`: action dropdown gains a `"save"` → "Save as"
+- `buildControlElement`: action dropdown gains a `"copy"` → "Copy as"
   option.
-- `populateDestOptions`: new branch for `action === "save"` →
+- `populateDestOptions`: new branch for `action === "copy"` →
   `"clipboard"` → "Clipboard" + disabled "More destinations soon"
   (matches the existing n8n-destination placeholder pattern).
-- `destSelect` change handler: `save` + `clipboard` → populate the format
+- `destSelect` change handler: `copy` + `clipboard` → populate the format
   dropdown with the same JSON/MD options `send` already uses (shared
   `populateFormatOptions`).
 - `formatSelect` change handler: now branches on `actionSelect.value` —
-  `"send"` → existing `handleSendToN8n`, `"save"` → new `handleSaveAs`.
+  `"send"` → existing `handleSendToN8n`, `"copy"` → new `handleCopyAs`.
+- Renamed from the original "Save as" after live testing: `handleCopyAs`
+  is also now the control's default selection on every load (previously
+  "Send to" → "n8n" defaulted; "Copy as" → "Clipboard" needs no
+  configuration at all, so it's the better universal default).
 - Refactor extraction out of `extractAndSend` into a standalone
   `extractCurrentPayload(callback)` (same site/type branching, just
   stops short of the webhook send) — `extractAndSend` becomes a thin
-  wrapper that extracts then sends. `handleSaveAs` reuses
+  wrapper that extracts then sends. `handleCopyAs` reuses
   `extractCurrentPayload` directly, builds the text
   (`payload.markdown` for MD, `JSON.stringify(payload, null, 2)` for
   JSON), and `navigator.clipboard.writeText()`s it — same API already
@@ -521,7 +525,7 @@ available.
 - Toast on success/failure, same color-coded pattern as the n8n send.
 
 **Checklist:**
-- [x] "Save as" shows up and works (tested on ChatGPT chat)
+- [x] "Copy as" shows up and works (tested on ChatGPT chat)
 - [x] Clipboard content matches what a JSON/MD n8n send would have sent
 - [ ] Sticky-selection behavior (action/destination stay picked after
       firing) still works correctly now that there are two terminal
