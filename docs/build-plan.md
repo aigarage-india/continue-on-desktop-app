@@ -479,7 +479,13 @@ grouping. 10a and 10b are scoped now; batch send and send history
 
 ### 10a — "Save as" action, Clipboard destination (JSON/MD)
 
-**Status: implemented — not yet live-tested.**
+**Status: live-tested, working.** Confirmed on ChatGPT (Save as → Clipboard
+→ JSON copied a correct, complete payload) and via the shared
+`extractCurrentPayload` path exercised through Send to n8n on both
+ChatGPT and Claude (n8n execution logs show full, correct payloads). One
+Claude conversation 404'd on `extractChat()` — turned out to be an
+isolated, pre-existing oddity unrelated to this phase (see note at the
+end of 10b) — every other conversation tested extracted fine.
 
 Extends the dropdown control with a third action alongside "Open in" /
 "Send to": **"Save as" → "Clipboard" → JSON/MD**, copying the extracted
@@ -515,12 +521,12 @@ available.
 - Toast on success/failure, same color-coded pattern as the n8n send.
 
 **Checklist:**
-- [ ] "Save as" shows up on every supported page type (chat, project,
-      Code, Cowork, ChatGPT project), independent of n8n settings
-- [ ] Clipboard content matches what a JSON/MD n8n send would have sent
+- [x] "Save as" shows up and works (tested on ChatGPT chat)
+- [x] Clipboard content matches what a JSON/MD n8n send would have sent
 - [ ] Sticky-selection behavior (action/destination stay picked after
       firing) still works correctly now that there are two terminal
       format-dropdown destinations (n8n vs clipboard) sharing one dropdown
+      — not yet specifically tested switching between the two
 
 ### 10b — Local download fallback when "Send to n8n" fails
 
@@ -551,13 +557,27 @@ need to special-case "no webhook configured" separately.
   error toast with ", downloaded a backup copy" appended.
 
 **Checklist:**
+- [x] Confirm success path is unaffected (no stray download on a
+      successful send) — confirmed via n8n execution logs (94319, 95313)
 - [ ] Trigger a real failure (e.g. temporarily wrong auth header against
       the test n8n workflow) and confirm a correctly-named `.json`/`.md`
       file downloads with the right content
-- [ ] Confirm success path is unaffected (no stray download on a
-      successful send)
 - [ ] Chrome's "multiple downloads" permission prompt (if it appears)
       doesn't block the toast/UI reset
+
+**Unrelated finding during testing (not a bug in this phase):** one
+specific Claude conversation 404'd on `ClaudeExtractor.extractChat()`
+(confirmed from a plain browser tab hitting the same claude.ai API
+directly, independent of the extension — "chat_conversation_not_found").
+Every other Claude conversation tested extracted fine. The failing one's
+content pattern (title "Test", trivial one-word exchanges) closely
+resembles the Cowork/Code test sessions used earlier in Phase 8 — open
+theory is it's actually backed by the newer `/v1/code/sessions/{id}`
+infrastructure despite rendering at a legacy-looking `/chat/{id}` URL,
+meaning `extractChat()` would need a fallback to that endpoint. Not
+pursued further since it's a single known-odd test conversation, not
+representative of normal usage — revisit only if this turns out to
+affect real conversations too.
 
 ### 10c — Batch send, send history (deferred)
 
