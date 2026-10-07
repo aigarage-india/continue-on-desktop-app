@@ -13,6 +13,8 @@ Chrome extension that adds a small control to [claude.ai](https://claude.ai) and
 - Toolbar popup with quick open + copy link
 - Dark mode support
 - Optional: send a Claude/ChatGPT chat, a Claude Project's docs, a ChatGPT Project's instructions/files, or a Claude Code/Cowork session's transcript, to your own n8n webhook as JSON or Markdown
+- "Save as" → Clipboard (JSON or Markdown) always available, no n8n setup needed
+- If a send to n8n fails, a local JSON/Markdown backup file downloads automatically so nothing's lost
 
 ## Install (developer mode)
 
@@ -58,6 +60,12 @@ The injected control then offers **Send to** as an action. Picking it reveals a 
 - On a Claude Code or Cowork session: sends the session transcript (same message/role shape as a chat).
 
 Extraction reads claude.ai's and chatgpt.com's own same-origin API endpoints (the same ones their web apps use), with your existing session cookies — nothing is fetched from, or sent to, any third-party or AI Garage server. The only network destination is the webhook URL you configure. These endpoints are not publicly documented and can change without notice; if extraction ever breaks, that's the likely cause.
+
+If a send fails (network error, auth mismatch, webhook down, etc.), the extension automatically downloads the same payload as a local `.json`/`.md` file so you don't lose it — no extra step needed.
+
+## Save as (clipboard)
+
+Independent of n8n — works even with "Send to n8n" disabled. Pick **Save as** → **Clipboard** → **JSON** or **MD** in the control, and the extracted payload is copied straight to your clipboard via the browser's clipboard API. Useful for a one-off copy-paste without setting up a webhook at all.
 
 ## Known limitations
 
