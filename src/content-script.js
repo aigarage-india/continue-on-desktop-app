@@ -12,6 +12,7 @@
   var enabled = true;
   var n8nReady = false;
   var n8nSending = false;
+  var redactionEnabled = true;
 
   var LANDMARK_SELECTORS = {
     claude: [
@@ -59,9 +60,11 @@
         enableClaude: true,
         enableChatGPT: true,
         n8nExportEnabled: false,
+        redactionEnabled: true,
       },
       function (syncSettings) {
         enabled = syncSettings[storageKey];
+        redactionEnabled = syncSettings.redactionEnabled;
 
         chrome.storage.local.get({ n8nWebhookUrl: "" }, function (localSettings) {
           n8nReady = !!(syncSettings.n8nExportEnabled && localSettings.n8nWebhookUrl);
@@ -272,6 +275,11 @@
     }, PROTOCOL_TIMEOUT_MS);
   }
 
+  function redactionSuffix(count) {
+    if (!count) return "";
+    return " " + count + " item" + (count === 1 ? "" : "s") + " redacted.";
+  }
+
   // Shared by every terminal-dropdown handler (send, copy): re-enable
   // action/destination and reset just the format dropdown back to its
   // placeholder, same sticky-selection behavior for both.
@@ -325,7 +333,7 @@
         finishTerminalSelects(wrap, formatSelect);
 
         if (result && result.ok) {
-          showToast("Sent to n8n.", "success");
+          showToast("Sent to n8n." + redactionSuffix(extractResult.redactedCount), "success");
         } else {
           var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
           downloadPayloadAsFile(payload, format);
@@ -352,7 +360,8 @@
         : JSON.stringify(result.payload, null, 2);
 
       navigator.clipboard.writeText(text).then(function () {
-        showToast("Copied to clipboard (" + (format === "markdown" ? "Markdown" : "JSON") + ").", "success");
+        var formatLabel = format === "markdown" ? "Markdown" : "JSON";
+        showToast("Copied to clipboard (" + formatLabel + ")." + redactionSuffix(result.redactedCount), "success");
       }).catch(function () {
         showToast("Couldn't copy to clipboard — your browser may have blocked it.", "error");
       });
@@ -497,7 +506,15 @@
 
     extractPromise
       .then(function (payload) {
-        callback({ ok: true, payload: payload });
+        // Single chokepoint for every consumer (n8n send, clipboard copy,
+        // the download fallback) — redaction applies uniformly regardless
+        // of destination, same toggle for all of them.
+        if (!redactionEnabled) {
+          callback({ ok: true, payload: payload, redactedCount: 0 });
+          return;
+        }
+        var redacted = RedactionUtil.redactPayload(payload);
+        callback({ ok: true, payload: redacted.payload, redactedCount: redacted.count });
       })
       .catch(function (err) {
         callback({ ok: false, error: err.message || String(err) });

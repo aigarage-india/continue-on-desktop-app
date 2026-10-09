@@ -9,25 +9,39 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   toggleClaude.addEventListener("change", function () {
-    save({ enableClaude: toggleClaude.checked });
+    save({ enableClaude: toggleClaude.checked }, saveStatus);
   });
 
   toggleChatGPT.addEventListener("change", function () {
-    save({ enableChatGPT: toggleChatGPT.checked });
+    save({ enableChatGPT: toggleChatGPT.checked }, saveStatus);
   });
 
-  function save(data) {
+  function save(data, statusEl) {
     chrome.storage.sync.set(data, function () {
-      saveStatus.textContent = "Saved";
-      saveStatus.classList.add("visible");
+      statusEl.textContent = "Saved";
+      statusEl.classList.add("visible");
       setTimeout(function () {
-        saveStatus.classList.remove("visible");
+        statusEl.classList.remove("visible");
       }, 1500);
     });
   }
 
+  initRedactionSection(save);
   initN8nSection();
 });
+
+function initRedactionSection(save) {
+  var toggleRedaction = document.getElementById("toggle-redaction");
+  var redactionSaveStatus = document.getElementById("redaction-save-status");
+
+  chrome.storage.sync.get({ redactionEnabled: true }, function (settings) {
+    toggleRedaction.checked = settings.redactionEnabled;
+  });
+
+  toggleRedaction.addEventListener("change", function () {
+    save({ redactionEnabled: toggleRedaction.checked }, redactionSaveStatus);
+  });
+}
 
 function initN8nSection() {
   var toggleExport = document.getElementById("toggle-n8n-export");

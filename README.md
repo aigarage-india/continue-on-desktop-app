@@ -15,6 +15,7 @@ Chrome extension that adds a small control to [claude.ai](https://claude.ai) and
 - Optional: send a Claude/ChatGPT chat, a Claude Project's docs, a ChatGPT Project's instructions/files, or a Claude Code/Cowork session's transcript, to your own n8n webhook as JSON or Markdown
 - "Copy as" → Clipboard (JSON or Markdown) always available, no n8n setup needed — also the control's default selection
 - If a send to n8n fails, a local JSON/Markdown backup file downloads automatically so nothing's lost
+- Redaction (on by default, toggle in Options): emails, credit card numbers, known API key formats, and phone numbers are redacted before anything is sent, copied, or downloaded
 
 ## Install (developer mode)
 
@@ -67,6 +68,17 @@ If a send fails (network error, auth mismatch, webhook down, etc.), the extensio
 
 Independent of n8n — works even with "Send to n8n" disabled, and is the control's default selection on every page. Pick **Copy as** → **Clipboard** → **JSON** or **MD**, and the extracted payload is copied straight to your clipboard via the browser's clipboard API. Useful for a one-off copy-paste without setting up a webhook at all.
 
+## Redaction
+
+On by default (**Options → Privacy → Redact sensitive data**). Before a payload is sent to n8n, copied to your clipboard, or downloaded as a backup file, the following are replaced with placeholders like `[REDACTED EMAIL]`:
+
+- Email addresses
+- Credit card numbers
+- Known API key / token formats (OpenAI `sk-...`, GitHub `ghp_...`/`gho_...`/etc., AWS `AKIA...`, Google `AIza...`, Slack `xox...`, Stripe `sk_live_...`/`pk_live_...`)
+- Phone numbers
+
+The toast after a successful send/copy says how many items were redacted. This is a precise, pattern-based filter, not a general PII scanner — it deliberately doesn't flag "any long random-looking string," since Claude Code/Cowork session content is full of legitimate hashes, UUIDs, and git SHAs that a broader filter would mangle. Turn it off in Options if you want raw, unredacted content.
+
 ## Known limitations
 
 - **Desktop app required** — the deep link only works if the corresponding desktop app (Claude Desktop or ChatGPT Desktop) is installed. If it's not installed, the link is copied to your clipboard instead.
@@ -81,6 +93,8 @@ Independent of n8n — works even with "Send to n8n" disabled, and is the contro
 ## Privacy
 
 **Open in Desktop:** collects and transmits nothing. It reads only the current tab's URL to generate a desktop app deep link. Preferences (per-site toggles) are stored locally in Chrome's `chrome.storage.sync` and never leave your browser.
+
+**Redaction (on by default):** runs entirely in your browser before anything is sent, copied, or downloaded — see [Redaction](#redaction) above. Turn it off in Options if you'd rather send/copy raw content.
 
 **Send to n8n (opt-in, off by default):** when you enable it and complete the Send to → n8n → format dropdown chain, the full content of the current chat, project, or session — including message text — is sent to the webhook URL you configured, in the format you chose (JSON or Markdown). This only happens on an explicit selection; nothing is sent automatically or in the background. No conversation content is ever stored by the extension itself — it's read, sent once, and discarded. Make sure you trust whatever is on the other end of the webhook URL you enter, since that destination receives your conversation content in full.
 

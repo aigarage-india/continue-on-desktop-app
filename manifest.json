@@ -12,13 +12,13 @@
   "content_scripts": [
     {
       "matches": ["https://claude.ai/*"],
-      "js": ["src/utils.js", "src/extractors/claude.js", "src/content-script.js"],
+      "js": ["src/utils.js", "src/redact.js", "src/extractors/claude.js", "src/content-script.js"],
       "css": ["src/styles.css"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://chatgpt.com/*"],
-      "js": ["src/utils.js", "src/extractors/chatgpt.js", "src/content-script.js"],
+      "js": ["src/utils.js", "src/redact.js", "src/extractors/chatgpt.js", "src/content-script.js"],
       "css": ["src/styles.css"],
       "run_at": "document_idle"
     }

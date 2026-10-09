@@ -32,6 +32,20 @@
         <div id="save-status" class="save-status"></div>
       </section>
 
+      <section class="panel">
+        <h2>Privacy</h2>
+        <p class="subtitle">Redact common sensitive patterns (emails, credit card numbers, known API key formats, phone numbers) before anything is sent to n8n, copied to your clipboard, or downloaded as a backup file.</p>
+
+        <div class="toggle-row toggle-row-last">
+          <label for="toggle-redaction">
+            <span class="toggle-label">Redact sensitive data</span>
+          </label>
+          <input type="checkbox" id="toggle-redaction" checked>
+        </div>
+
+        <div id="redaction-save-status" class="save-status"></div>
+      </section>
+
       <section class="panel panel-n8n">
         <h2>Send to n8n</h2>
         <p class="subtitle">Send a chat or Claude Project to your own n8n webhook for processing — nothing is ever sent anywhere else.</p>
