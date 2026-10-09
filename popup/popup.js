@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var currentDeepLink = null;
   var currentTabId = null;
+  var deepLinkSection = document.getElementById("deep-link-section");
   var n8nActions = document.getElementById("n8n-actions");
   var sendN8nBtn = document.getElementById("send-n8n-btn");
   var n8nFormatSelect = document.getElementById("n8n-format-select");
@@ -24,16 +25,25 @@ document.addEventListener("DOMContentLoaded", function () {
     currentTabId = tab.id;
     var info = ContinueOnDesktop.getSiteInfo(tab.url);
 
-    if (!info.deepLink) {
+    // Code/Cowork sessions and ChatGPT Projects have no deep link (no
+    // confirmed desktop protocol handler) but still have a conversation
+    // to send to n8n — gate on conversationId, not deepLink, or the
+    // popup wrongly says "No conversation detected" on those pages even
+    // though the in-page control works fine there.
+    if (!info.conversationId) {
       showUnsupported();
       return;
     }
 
-    currentDeepLink = info.deepLink;
-    siteLabel.textContent = info.site === "claude" ? "Claude" : "ChatGPT";
-    siteLabel.setAttribute("data-site", info.site);
-    deepLinkText.textContent = currentDeepLink;
     supportedView.style.display = "block";
+
+    if (info.deepLink) {
+      currentDeepLink = info.deepLink;
+      siteLabel.textContent = info.site === "claude" ? "Claude" : "ChatGPT";
+      siteLabel.setAttribute("data-site", info.site);
+      deepLinkText.textContent = currentDeepLink;
+      deepLinkSection.style.display = "block";
+    }
 
     chrome.storage.sync.get(
       { n8nExportEnabled: false, n8nExportFormat: "json" },
