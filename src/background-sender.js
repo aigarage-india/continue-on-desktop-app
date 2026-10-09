@@ -1,4 +1,8 @@
-var TIMEOUT_MS = 10000;
+// A long chat (thousands of messages) can be several MB and genuinely
+// take longer than a few seconds to upload and for the receiving
+// workflow to process — a short timeout treats that as a failure when
+// it's just slow, not broken.
+var TIMEOUT_MS = 60000;
 var RETRY_DELAY_MS = 1500;
 
 function buildBody(payload, format) {
