@@ -7,13 +7,26 @@ var RETRY_DELAY_MS = 1500;
 
 function buildBody(payload, format) {
   if (format === "markdown") {
+    // Metadata (source/type/id/url/title or name/exported_at) travels
+    // with the markdown too, same as JSON mode — a receiving workflow
+    // needs it to know what the export even is. Only messages[]/docs[]
+    // are left out; that's the actual JSON-vs-MD distinction now: full
+    // structured breakdown vs. flattened single text + metadata.
+    // Undefined fields (e.g. `name` on a chat, `title` on a project) are
+    // dropped by JSON.stringify, so only the fields that actually apply
+    // show up.
     return {
-      body: payload.markdown || "",
-      // n8n's Webhook node only auto-parses a fixed set of content types
-      // (json, text/plain, form-data, xml...) — an unrecognized one like
-      // text/markdown falls back to treating the body as binary data.
-      // Markdown is plain text, so text/plain parses it correctly.
-      contentType: "text/plain",
+      body: JSON.stringify({
+        source: payload.source,
+        type: payload.type,
+        id: payload.id,
+        url: payload.url,
+        title: payload.title,
+        name: payload.name,
+        exported_at: payload.exported_at,
+        markdown: payload.markdown || "",
+      }),
+      contentType: "application/json",
     };
   }
   return {
