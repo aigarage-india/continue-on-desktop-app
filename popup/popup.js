@@ -14,6 +14,9 @@ document.addEventListener("DOMContentLoaded", function () {
   var sendN8nBtn = document.getElementById("send-n8n-btn");
   var n8nFormatSelect = document.getElementById("n8n-format-select");
   var sendN8nLabel = document.getElementById("send-n8n-label");
+  var copyAsBtn = document.getElementById("copy-as-btn");
+  var copyFormatSelect = document.getElementById("copy-format-select");
+  var copyAsLabel = document.getElementById("copy-as-label");
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (!tabs || !tabs[0]) {
@@ -87,6 +90,42 @@ document.addEventListener("DOMContentLoaded", function () {
         var errMsg = (result && result.error) || "Failed (status " + (result && result.status) + ")";
         showStatus("Failed: " + errMsg);
       }
+    });
+  });
+
+  copyAsBtn.addEventListener("click", function () {
+    if (!currentTabId) return;
+    copyAsBtn.disabled = true;
+    showStatus("Copying...");
+
+    var format = copyFormatSelect.value;
+    chrome.tabs.sendMessage(currentTabId, { type: "POPUP_COPY_AS", format: format }, function (result) {
+      copyAsBtn.disabled = false;
+
+      if (chrome.runtime.lastError) {
+        showStatus("Failed: " + chrome.runtime.lastError.message);
+        return;
+      }
+      if (!result || !result.ok) {
+        showStatus("Failed: " + ((result && result.error) || "unknown error"));
+        return;
+      }
+
+      // Written here, in the popup's own document, not in the content
+      // script — this click is the user gesture the Clipboard API needs.
+      navigator.clipboard.writeText(result.text).then(function () {
+        var suffix = result.redactedCount
+          ? " (" + result.redactedCount + " item" + (result.redactedCount === 1 ? "" : "s") + " redacted)"
+          : "";
+        copyAsLabel.textContent = "✓ Copied";
+        showStatus("Copied to clipboard." + suffix);
+        setTimeout(function () {
+          copyAsLabel.textContent = "Copy";
+          clearStatus();
+        }, 1800);
+      }).catch(function () {
+        showStatus("Couldn't copy to clipboard.");
+      });
     });
   });
 

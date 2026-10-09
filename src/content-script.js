@@ -532,9 +532,35 @@
   }
 
   chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-    if (!message || message.type !== "POPUP_SEND_TO_N8N") return false;
-    extractAndSend(sendResponse);
-    return true;
+    if (!message) return false;
+
+    if (message.type === "POPUP_SEND_TO_N8N") {
+      extractAndSend(sendResponse);
+      return true;
+    }
+
+    if (message.type === "POPUP_COPY_AS") {
+      // Extraction (and redaction) must happen here, in the content
+      // script, since it needs same-origin access to claude.ai/chatgpt.com.
+      // The actual clipboard write happens back in the popup itself,
+      // where the click that triggered this still has user-gesture
+      // activation — a write from here, async from a cross-context
+      // message, isn't guaranteed to be allowed.
+      extractCurrentPayload(function (result) {
+        if (!result.ok) {
+          sendResponse({ ok: false, error: result.error });
+          return;
+        }
+        var format = message.format;
+        var text = format === "markdown"
+          ? (result.payload.markdown || "")
+          : JSON.stringify(result.payload, null, 2);
+        sendResponse({ ok: true, text: text, redactedCount: result.redactedCount });
+      });
+      return true;
+    }
+
+    return false;
   });
 
   function copyToClipboard(text) {

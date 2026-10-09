@@ -110,6 +110,11 @@ body {
   border: 1px solid #ea4b71;
 }
 
+#copy-as-btn {
+  flex: 1;
+  border: 1px solid #bcef37;
+}
+
 #send-n8n-btn.btn-success {
   background: #16a34a;
   color: #ffffff;
