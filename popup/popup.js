@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var currentDeepLink = null;
   var currentTabId = null;
   var deepLinkSection = document.getElementById("deep-link-section");
+  var noDeepLinkHint = document.getElementById("no-deep-link-hint");
   var n8nActions = document.getElementById("n8n-actions");
   var sendN8nBtn = document.getElementById("send-n8n-btn");
   var n8nFormatSelect = document.getElementById("n8n-format-select");
@@ -46,6 +47,8 @@ document.addEventListener("DOMContentLoaded", function () {
       siteLabel.setAttribute("data-site", info.site);
       deepLinkText.textContent = currentDeepLink;
       deepLinkSection.style.display = "block";
+    } else {
+      noDeepLinkHint.style.display = "block";
     }
 
     chrome.storage.sync.get(

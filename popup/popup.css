@@ -58,6 +58,23 @@ body {
   background: #19c37d;
 }
 
+.no-deep-link-hint {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #999;
+  background: #f7f7f7;
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .no-deep-link-hint {
+    color: #888;
+    background: #262626;
+  }
+}
+
 .link-text {
   font-size: 11px;
   color: #888;
